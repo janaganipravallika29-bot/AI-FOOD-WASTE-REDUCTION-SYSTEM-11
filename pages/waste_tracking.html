@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waste Tracking — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Main Menu</div>
+    <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+    <a href="foodentry.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
+    <a href="prediction.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
+    <a href="recommendations.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
+    <div class="nav-section-title">Tracking</div>
+    <a href="waste_tracking.html"  class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span> Waste Tracking</a>
+    <a href="reports.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> Reports</a>
+    <a href="notifications.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
+    <div class="nav-section-title">Account</div>
+    <a href="profile.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">PJ</div>
+      <div><div class="user-name" id="userName">Pravallika Janagani</div><div class="user-role">Regular User</div></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left"><h1>Waste Tracking</h1><p>Record and analyze wasted food data</p></div>
+    </div>
+    <div class="topbar-right">
+      <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
+      <div class="user-avatar" id="topUserAvatar">PJ</div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="page-header">
+      <div>
+        <h2><i class="fa-solid fa-trash-can" style="color:var(--danger);margin-right:10px;"></i>Food Waste Log</h2>
+        <p>Keep track of food that was discarded to analyze causes and reduce future waste.</p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:24px;">
+      <!-- Waste Log Form -->
+      <div class="card">
+        <h3 style="margin-bottom:18px;"><i class="fa-solid fa-plus" style="color:var(--primary);margin-right:6px;"></i>Record Wasted Food</h3>
+        <form id="wasteForm" onsubmit="addWasteRecord(event)">
+          <div class="form-group">
+            <label class="form-label">Food Item Name *</label>
+            <input type="text" id="wFoodName" class="form-control" placeholder="e.g. Spoiled Tomatoes" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category *</label>
+            <select id="wCategory" class="form-control" required>
+              <option value="vegetables">🥦 Vegetables</option>
+              <option value="fruits">🍎 Fruits</option>
+              <option value="dairy">🥛 Dairy</option>
+              <option value="bakery">🍞 Bakery</option>
+              <option value="meat">🥩 Meat</option>
+              <option value="grains">🌾 Grains</option>
+              <option value="other">🍽️ Other</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Quantity Wasted *</label>
+              <input type="number" id="wQty" class="form-control" placeholder="1.5" step="0.1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Unit</label>
+              <select id="wUnit" class="form-control">
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="L">L</option>
+                <option value="pcs">pcs</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Waste Reason *</label>
+            <select id="wReason" class="form-control" required>
+              <option value="expired">Expired</option>
+              <option value="spoiled">Spoiled / Moldy</option>
+              <option value="over_purchased">Over-purchased</option>
+              <option value="overcooked">Overcooked</option>
+              <option value="leftovers">Uneaten Leftovers</option>
+              <option value="poor_storage">Poor Storage</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estimated Value ($)</label>
+            <input type="number" id="wValue" class="form-control" placeholder="e.g. 4.50" step="0.5">
+          </div>
+          <button type="submit" class="btn btn-danger w-full" style="justify-content:center;padding:12px;margin-top:10px;">
+            <i class="fa-solid fa-trash-can"></i> Log Waste Record
+          </button>
+        </form>
+      </div>
+
+      <!-- Waste Log Table -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <h3><i class="fa-solid fa-list" style="color:var(--primary);margin-right:8px;"></i>Recent Waste Logs</h3>
+          <span class="badge badge-danger">Total: <span id="totalWasteVal">6.5</span> kg</span>
+        </div>
+        <div class="table-wrapper" style="border:none;">
+          <table>
+            <thead>
+              <tr>
+                <th>Food Item</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Reason</th>
+                <th>Est. Cost</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="wasteTableBody">
+              <tr><td><strong>Sliced Bread</strong></td><td>🍞 Bakery</td><td>1 loaf</td><td><span class="badge badge-warning">Expired</span></td><td>$2.50</td><td>Aug 11, 2025</td></tr>
+              <tr><td><strong>Tomatoes</strong></td><td>🥦 Vegetables</td><td>0.8 kg</td><td><span class="badge badge-danger">Spoiled</span></td><td>$3.20</td><td>Aug 09, 2025</td></tr>
+              <tr><td><strong>Whole Milk</strong></td><td>🥛 Dairy</td><td>1 L</td><td><span class="badge badge-warning">Expired</span></td><td>$1.80</td><td>Aug 06, 2025</td></tr>
+              <tr><td><strong>Chicken Breast</strong></td><td>🥩 Meat</td><td>0.5 kg</td><td><span class="badge badge-danger">Spoiled</span></td><td>$6.00</td><td>Aug 03, 2025</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+const defaultUser = { name: "Pravallika Janagani", email: "pravallikajanagani4@gmail.com" };
+const user = JSON.parse(localStorage.getItem('fw_user') || JSON.stringify(defaultUser));
+const initials = (user.name || 'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+document.getElementById('userName').textContent = user.name;
+document.getElementById('userAvatar').textContent = initials;
+document.getElementById('topUserAvatar').textContent = initials;
+
+function addWasteRecord(e) {
+  e.preventDefault();
+  const name = document.getElementById('wFoodName').value;
+  const cat = document.getElementById('wCategory').value;
+  const qty = document.getElementById('wQty').value;
+  const unit = document.getElementById('wUnit').value;
+  const reason = document.getElementById('wReason').value;
+  const val = document.getElementById('wValue').value || '0.00';
+  const date = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+  const tbody = document.getElementById('wasteTableBody');
+  const row = document.createElement('tr');
+  row.innerHTML = `<td><strong>${name}</strong></td><td>${cat}</td><td>${qty} ${unit}</td><td><span class="badge badge-danger">${reason}</span></td><td>$${parseFloat(val).toFixed(2)}</td><td>${date}</td>`;
+  tbody.insertBefore(row, tbody.firstChild);
+
+  showToast('Waste record logged successfully!', 'success');
+  document.getElementById('wasteForm').reset();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>

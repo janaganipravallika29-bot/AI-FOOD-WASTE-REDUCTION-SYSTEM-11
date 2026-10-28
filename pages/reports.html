@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Waste Reports — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Main Menu</div>
+    <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+    <a href="foodentry.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
+    <a href="prediction.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
+    <a href="recommendations.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
+    <div class="nav-section-title">Tracking</div>
+    <a href="waste_tracking.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span> Waste Tracking</a>
+    <a href="reports.html"         class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> Reports</a>
+    <a href="notifications.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
+    <div class="nav-section-title">Account</div>
+    <a href="profile.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">PJ</div>
+      <div><div class="user-name" id="userName">Pravallika Janagani</div><div class="user-role">Regular User</div></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left"><h1>Food Waste Reports</h1><p>Generate summary reports & export analytical data</p></div>
+    </div>
+    <div class="topbar-right">
+      <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
+      <div class="user-avatar" id="topUserAvatar">PJ</div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="page-header">
+      <div>
+        <h2><i class="fa-solid fa-file-chart-column" style="color:var(--primary);margin-right:10px;"></i>Analytical Reports</h2>
+        <p>View daily, weekly, and monthly waste breakdowns with downloadable summaries.</p>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary btn-sm" onclick="exportReport()"><i class="fa-solid fa-download"></i> Download Report (PDF)</button>
+      </div>
+    </div>
+
+    <!-- Report Period Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-icon"><i class="fa-solid fa-calendar-day"></i></div>
+        <div class="kpi-value">0.2<small style="font-size:1rem">kg</small></div>
+        <div class="kpi-label">Today's Waste</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-icon"><i class="fa-solid fa-calendar-week"></i></div>
+        <div class="kpi-value">1.8<small style="font-size:1rem">kg</small></div>
+        <div class="kpi-label">Weekly Total Waste</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div>
+        <div class="kpi-value">6.5<small style="font-size:1rem">kg</small></div>
+        <div class="kpi-label">Monthly Total Waste</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-icon"><i class="fa-solid fa-dollar-sign"></i></div>
+        <div class="kpi-value">$24.50</div>
+        <div class="kpi-label">Est. Financial Impact</div>
+      </div>
+    </div>
+
+    <!-- Summary Report Document Card -->
+    <div class="card" style="margin-top:24px;">
+      <h3 style="margin-bottom:16px;"><i class="fa-solid fa-file-lines" style="color:var(--primary);margin-right:8px;"></i>Executive Waste Summary</h3>
+      <p style="color:var(--text-muted);font-size:0.9rem;line-height:1.7;margin-bottom:20px;">
+        During the current billing cycle, <strong>Pravallika Janagani</strong> recorded 48 food items, consumed 32 items, and discarded 6 items near expiry. Your overall Waste Reduction Score improved to <strong>78/100</strong> (+12% improvement over previous month).
+      </p>
+      
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;">
+        <h4 style="margin-bottom:12px;font-size:0.95rem;">Key Takeaways & Recommendations</h4>
+        <ul style="list-style:disc;padding-left:20px;color:var(--text-muted);font-size:0.88rem;line-height:1.8;">
+          <li>Most wasted category: <strong>Bakery & Dairy products</strong>.</li>
+          <li>Primary waste cause: <strong>Past expiration date</strong> (65% of recorded waste).</li>
+          <li>Action Plan: Utilize freeze-storage recommendations for dairy products to save an estimated $18.00 next month.</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+const defaultUser = { name: "Pravallika Janagani", email: "pravallikajanagani4@gmail.com" };
+const user = JSON.parse(localStorage.getItem('fw_user') || JSON.stringify(defaultUser));
+const initials = (user.name || 'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+document.getElementById('userName').textContent = user.name;
+document.getElementById('userAvatar').textContent = initials;
+document.getElementById('topUserAvatar').textContent = initials;
+
+function exportReport() {
+  showToast('Generating PDF Report...', 'info');
+  setTimeout(() => {
+    showToast('Report downloaded successfully!', 'success');
+  }, 1200);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>

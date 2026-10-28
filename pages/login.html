@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Login to FoodWise AI — Your AI-powered food waste reduction dashboard.">
+  <title>Login — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .auth-features { margin-top: 36px; display: flex; flex-direction: column; gap: 14px; }
+    .auth-feature-item {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 0.88rem; color: var(--text-secondary);
+    }
+    .auth-feature-item .af-icon {
+      width: 34px; height: 34px;
+      border-radius: var(--radius-sm);
+      background: rgba(74,222,128,0.12);
+      color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; flex-shrink: 0;
+    }
+  </style>
+</head>
+<body class="auth-page">
+
+<!-- Left Panel -->
+<div class="auth-left">
+  <div style="position:relative;z-index:1;width:100%;max-width:380px;text-align:center;">
+    <div class="nav-logo" style="justify-content:center;margin-bottom:32px;">
+      <div class="nav-logo-icon" style="width:48px;height:48px;font-size:1.5rem;">🌿</div>
+      <span style="font-family:'Poppins',sans-serif;font-weight:700;font-size:1.2rem;">FoodWise <span class="text-gradient">AI</span></span>
+    </div>
+    <div class="auth-hero-icon">🍃</div>
+    <h2>Welcome Back!</h2>
+    <p>Sign in to access your food waste dashboard, track your progress, and continue reducing waste with AI-powered insights.</p>
+    <div class="auth-features">
+      <div class="auth-feature-item">
+        <div class="af-icon"><i class="fa-solid fa-brain"></i></div>
+        AI-powered waste risk predictions
+      </div>
+      <div class="auth-feature-item">
+        <div class="af-icon"><i class="fa-solid fa-bell"></i></div>
+        Smart expiry date notifications
+      </div>
+      <div class="auth-feature-item">
+        <div class="af-icon"><i class="fa-solid fa-chart-line"></i></div>
+        Real-time analytics dashboard
+      </div>
+      <div class="auth-feature-item">
+        <div class="af-icon"><i class="fa-solid fa-lightbulb"></i></div>
+        Personalized food recommendations
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Right Panel -->
+<div class="auth-right">
+  <div class="auth-form-box">
+    <div class="logo-row">
+      <div class="nav-logo-icon">🌿</div>
+      <div>
+        <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:0.95rem;">FoodWise AI</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">AI-Powered Food Management</div>
+      </div>
+    </div>
+
+    <h1>Sign In</h1>
+    <p class="auth-sub">Enter your credentials to access your dashboard</p>
+
+    <!-- Alert placeholder -->
+    <div id="loginAlert" class="alert alert-danger hidden" role="alert">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span id="loginAlertMsg">Invalid email or password.</span>
+    </div>
+
+    <form id="loginForm" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="loginEmail">Email Address</label>
+        <div class="input-group">
+          <i class="fa-solid fa-envelope input-icon"></i>
+          <input type="email" id="loginEmail" class="form-control" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="text-sm text-muted mt-2" id="emailError" style="color:var(--danger);display:none;">Please enter a valid email.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="loginPassword">Password</label>
+        <div class="input-group">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
+          <button type="button" class="toggle-pass" id="togglePass" aria-label="Toggle password visibility">
+            <i class="fa-solid fa-eye" id="togglePassIcon"></i>
+          </button>
+        </div>
+        <div class="text-sm text-muted mt-2" id="passError" style="color:var(--danger);display:none;">Password is required.</div>
+      </div>
+
+      <div class="flex items-center justify-between mb-4" style="margin-bottom:20px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-muted);cursor:pointer;">
+          <input type="checkbox" id="rememberMe" style="accent-color:var(--primary);width:16px;height:16px;">
+          Remember me
+        </label>
+        <a href="#" style="font-size:0.85rem;color:var(--accent);">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full" id="loginBtn" style="justify-content:center;padding:14px;">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span id="loginBtnText">Sign In</span>
+      </button>
+    </form>
+
+    <div class="divider"><span>or continue with demo</span></div>
+
+    <button class="btn btn-outline w-full" id="demoBtn" style="justify-content:center;padding:12px;" onclick="fillDemo()">
+      <i class="fa-solid fa-flask"></i> Use Demo Account
+    </button>
+
+    <p style="text-align:center;margin-top:24px;font-size:0.88rem;color:var(--text-muted);">
+      Don't have an account?
+      <a href="signup.html" style="color:var(--accent);font-weight:600;"> Create Account</a>
+    </p>
+    <p style="text-align:center;margin-top:10px;font-size:0.83rem;color:var(--text-dim);">
+      <a href="admin.html" style="color:var(--text-dim);">
+        <i class="fa-solid fa-shield-halved" style="margin-right:4px;"></i>Admin Login
+      </a>
+    </p>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+  // Toggle password visibility
+  document.getElementById('togglePass').addEventListener('click', () => {
+    const input = document.getElementById('loginPassword');
+    const icon  = document.getElementById('togglePassIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'fa-solid fa-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'fa-solid fa-eye';
+    }
+  });
+
+  // Fill demo credentials
+  function fillDemo() {
+    document.getElementById('loginEmail').value    = 'pravallikajanagani4@gmail.com';
+    document.getElementById('loginPassword').value = '21S29P20P26B$#@';
+    showToast('Credentials auto-filled! Click Sign In.', 'info');
+  }
+
+  // Form submission
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    let valid = true;
+
+    // Basic validation
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      document.getElementById('emailError').style.display = 'block'; valid = false;
+    } else { document.getElementById('emailError').style.display = 'none'; }
+
+    if (!password) {
+      document.getElementById('passError').style.display = 'block'; valid = false;
+    } else { document.getElementById('passError').style.display = 'none'; }
+
+    if (!valid) return;
+
+    // Show loading
+    const btn     = document.getElementById('loginBtn');
+    const btnText = document.getElementById('loginBtnText');
+    btn.disabled  = true;
+    btnText.textContent = 'Signing in...';
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Signing in...';
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        localStorage.setItem('fw_token', data.token || '');
+        localStorage.setItem('fw_user', JSON.stringify(data.user || { name: 'Pravallika Janagani', email }));
+        showToast('Login successful! Redirecting...', 'success');
+        setTimeout(() => window.location.href = 'dashboard.html', 900);
+      } else {
+        showAlert(data.message || 'Invalid email or password.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+      }
+    } catch {
+      // Offline/demo mode — allow login with user credentials & demo account
+      if ((email === 'pravallikajanagani4@gmail.com' && password === '21S29P20P26B$#@') ||
+          (email === 'demo@foodwise.ai' && password === 'Demo@1234')) {
+        const userName = email.includes('pravallika') ? 'Pravallika Janagani' : 'Demo User';
+        localStorage.setItem('fw_user', JSON.stringify({ name: userName, email, role: 'user' }));
+        showToast(`Welcome back, ${userName}!`, 'success');
+        setTimeout(() => window.location.href = 'dashboard.html', 900);
+      } else {
+        showAlert('Could not connect to server. Check your credentials or click "Use Demo Account".');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+      }
+    }
+  });
+
+  function showAlert(msg) {
+    const el = document.getElementById('loginAlert');
+    document.getElementById('loginAlertMsg').textContent = msg;
+    el.classList.remove('hidden');
+  }
+</script>
+</body>
+</html>

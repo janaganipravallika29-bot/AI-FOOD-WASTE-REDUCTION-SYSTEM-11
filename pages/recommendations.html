@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recommendations — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .rec-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 22px; transition: all var(--transition); position: relative; overflow: hidden;
+    }
+    .rec-card::before {
+      content:''; position:absolute; left:0; top:0; bottom:0; width:4px;
+      background: var(--left-border, var(--primary));
+    }
+    .rec-card:hover { border-color:var(--border-hover); transform:translateY(-2px); box-shadow:var(--shadow-md); }
+    .rec-card.completed { opacity:0.6; }
+    .rec-card.completed::before { background: var(--text-dim); }
+    .rec-header { display:flex; align-items:flex-start; gap:14px; margin-bottom:14px; }
+    .rec-food-icon { width:44px; height:44px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+    .rec-food-name { font-weight:700; font-size:1rem; }
+    .rec-date      { font-size:0.78rem; color:var(--text-muted); margin-top:2px; }
+    .rec-actions-list { display:flex; flex-direction:column; gap:8px; margin:12px 0; }
+    .rec-action-item { display:flex; align-items:flex-start; gap:10px; font-size:0.88rem; padding:8px 12px; background:var(--surface); border-radius:var(--radius-sm); }
+    .rec-action-item i { color:var(--primary); flex-shrink:0; margin-top:2px; }
+    .rec-footer { display:flex; align-items:center; justify-content:space-between; margin-top:14px; flex-wrap:wrap; gap:8px; }
+    .priority-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
+    .recs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:20px; }
+    .tip-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px; display:flex; align-items:center; gap:12px; font-size:0.85rem; transition:all var(--transition); }
+    .tip-card:hover { background:var(--glass-light); }
+    .tip-icon { font-size:1.4rem; flex-shrink:0; }
+  </style>
+</head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Main Menu</div>
+    <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+    <a href="foodentry.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
+    <a href="prediction.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
+    <a href="recommendations.html" class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
+    <div class="nav-section-title">Tracking</div>
+    <a href="waste_tracking.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span> Waste Tracking</a>
+    <a href="reports.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> Reports</a>
+    <a href="notifications.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
+    <div class="nav-section-title">Account</div>
+    <a href="profile.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">U</div>
+      <div><div class="user-name" id="userName">User</div><div class="user-role">Regular User</div></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left"><h1>Recommendations</h1><p>AI-powered actions to reduce your food waste</p></div>
+    </div>
+    <div class="topbar-right">
+      <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
+      <a href="prediction.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-brain"></i> New Prediction</a>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="page-header">
+      <div>
+        <h2><i class="fa-solid fa-lightbulb" style="color:var(--primary);margin-right:10px;"></i>Smart Recommendations</h2>
+        <p>Personalized, actionable steps to prevent food waste based on your AI predictions.</p>
+      </div>
+      <div class="page-header-actions">
+        <div class="tabs" style="margin-bottom:0;">
+          <button class="tab-btn active" onclick="filterRecs('all',this)">All</button>
+          <button class="tab-btn" onclick="filterRecs('high',this)">🔴 High Priority</button>
+          <button class="tab-btn" onclick="filterRecs('pending',this)">Pending</button>
+          <button class="tab-btn" onclick="filterRecs('completed',this)">✅ Completed</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:1.6rem;font-weight:800;font-family:'Poppins',sans-serif;color:var(--accent);" id="totalRecs">0</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);">Total Recommendations</div>
+      </div>
+      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:1.6rem;font-weight:800;font-family:'Poppins',sans-serif;color:#f87171;" id="highRecs">0</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);">High Priority</div>
+      </div>
+      <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:1.6rem;font-weight:800;font-family:'Poppins',sans-serif;color:var(--accent);" id="completedRecs">0</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);">Completed</div>
+      </div>
+      <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:1.6rem;font-weight:800;font-family:'Poppins',sans-serif;color:#fbbf24;" id="pendingRecs">0</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);">Pending Action</div>
+      </div>
+    </div>
+
+    <!-- Recommendations Grid -->
+    <div class="recs-grid" id="recsGrid">
+      <!-- JS populated -->
+    </div>
+
+    <!-- General Tips Section -->
+    <div style="margin-top:32px;">
+      <h3 style="margin-bottom:16px;"><i class="fa-solid fa-star" style="color:#fbbf24;margin-right:8px;"></i>General Food Waste Tips</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
+        <div class="tip-card"><span class="tip-icon">🧊</span><div><strong>First In, First Out</strong><br><span style="color:var(--text-muted);">Always use older items before newer ones to minimize waste.</span></div></div>
+        <div class="tip-card"><span class="tip-icon">📋</span><div><strong>Plan Your Meals</strong><br><span style="color:var(--text-muted);">Plan weekly meals before shopping to buy only what you need.</span></div></div>
+        <div class="tip-card"><span class="tip-icon">❄️</span><div><strong>Freeze Surplus Food</strong><br><span style="color:var(--text-muted);">Freeze bread, meat, and vegetables before they expire.</span></div></div>
+        <div class="tip-card"><span class="tip-icon">🥗</span><div><strong>Use Leftovers Creatively</strong><br><span style="color:var(--text-muted);">Turn leftover veggies into soups, stews, or stir-fries.</span></div></div>
+        <div class="tip-card"><span class="tip-icon">🛒</span><div><strong>Shop Smart</strong><br><span style="color:var(--text-muted);">Buy only what you plan to consume within the expiry window.</span></div></div>
+        <div class="tip-card"><span class="tip-icon">🌡️</span><div><strong>Proper Storage</strong><br><span style="color:var(--text-muted);">Store food at the right temperature to extend freshness.</span></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+const user = JSON.parse(localStorage.getItem('fw_user') || '{"name":"User"}');
+const initials = (user.name||'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+document.getElementById('userName').textContent = user.name || 'User';
+document.getElementById('userAvatar').textContent = initials;
+
+const demoRecs = [
+  {
+    id:1, food_name:'Milk', risk:'high', completed:false, date:'Aug 11, 2025',
+    icon_bg:'rgba(239,68,68,0.1)', icon:'🥛',
+    left_color:'#ef4444', priority:'high',
+    actions:[
+      { icon:'fa-solid fa-clock', text:'Consume within the next 24 hours to avoid waste.' },
+      { icon:'fa-solid fa-snowflake', text:'If unable to consume, freeze immediately in an airtight container.' },
+      { icon:'fa-solid fa-cart-shopping', text:'Do not purchase additional dairy until this is consumed.' },
+      { icon:'fa-solid fa-share-nodes', text:'Consider sharing with neighbors or family if excess.' },
+    ]
+  },
+  {
+    id:2, food_name:'Tomatoes', risk:'high', completed:false, date:'Aug 11, 2025',
+    icon_bg:'rgba(239,68,68,0.1)', icon:'🍅',
+    left_color:'#ef4444', priority:'high',
+    actions:[
+      { icon:'fa-solid fa-utensils', text:'Use in a salad, pasta sauce, or soup today.' },
+      { icon:'fa-solid fa-temperature-low', text:'Move to refrigerator to slow ripening.' },
+      { icon:'fa-solid fa-ban', text:'Avoid buying additional tomatoes for the next week.' },
+      { icon:'fa-solid fa-jar', text:'If many, consider making and freezing tomato sauce.' },
+    ]
+  },
+  {
+    id:3, food_name:'Bread', risk:'medium', completed:false, date:'Aug 10, 2025',
+    icon_bg:'rgba(245,158,11,0.1)', icon:'🍞',
+    left_color:'#f59e0b', priority:'medium',
+    actions:[
+      { icon:'fa-solid fa-snowflake', text:'Freeze the remaining portions you won\'t consume today.' },
+      { icon:'fa-solid fa-bowl-food', text:'Make toast, breadcrumbs, or croutons from older slices.' },
+      { icon:'fa-solid fa-eye', text:'Check daily for mold and consume fresh portions first.' },
+    ]
+  },
+  {
+    id:4, food_name:'Rice', risk:'low', completed:true, date:'Aug 09, 2025',
+    icon_bg:'rgba(34,197,94,0.1)', icon:'🌾',
+    left_color:'#22c55e', priority:'low',
+    actions:[
+      { icon:'fa-solid fa-check', text:'Store in a sealed container in a cool, dry place.' },
+      { icon:'fa-solid fa-circle-info', text:'White rice has a long shelf life — no immediate action needed.' },
+    ]
+  },
+  {
+    id:5, food_name:'Spinach', risk:'high', completed:false, date:'Aug 11, 2025',
+    icon_bg:'rgba(239,68,68,0.1)', icon:'🥬',
+    left_color:'#ef4444', priority:'high',
+    actions:[
+      { icon:'fa-solid fa-blender', text:'Make a smoothie or juice with spinach today.' },
+      { icon:'fa-solid fa-fire', text:'Sauté and freeze in portions for later use in recipes.' },
+      { icon:'fa-solid fa-eye', text:'Remove any wilted leaves to prevent spread to healthy leaves.' },
+    ]
+  },
+];
+
+let allRecs = [];
+let currentFilter = 'all';
+
+async function loadRecommendations() {
+  try {
+    const res = await fetch('/api/recommendations');
+    allRecs = await res.json();
+  } catch {
+    allRecs = demoRecs;
+  }
+  updateStats();
+  renderRecs();
+}
+
+function updateStats() {
+  document.getElementById('totalRecs').textContent     = allRecs.length;
+  document.getElementById('highRecs').textContent      = allRecs.filter(r=>r.priority==='high').length;
+  document.getElementById('completedRecs').textContent = allRecs.filter(r=>r.completed).length;
+  document.getElementById('pendingRecs').textContent   = allRecs.filter(r=>!r.completed).length;
+}
+
+function renderRecs() {
+  const grid = document.getElementById('recsGrid');
+  let recs = allRecs;
+  if (currentFilter === 'high')      recs = allRecs.filter(r=>r.priority==='high');
+  else if (currentFilter === 'pending')   recs = allRecs.filter(r=>!r.completed);
+  else if (currentFilter === 'completed') recs = allRecs.filter(r=>r.completed);
+
+  if (!recs.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">
+      <i class="fa-solid fa-check-circle" style="font-size:3rem;color:var(--success);display:block;margin-bottom:14px;"></i>
+      <p style="font-size:1rem;font-weight:600;">No recommendations in this category.</p>
+    </div>`;
+    return;
+  }
+
+  const riskColor = { high:'#ef4444', medium:'#f59e0b', low:'#22c55e' };
+  const riskLabel = { high:'HIGH RISK', medium:'MEDIUM RISK', low:'LOW RISK' };
+  const riskBadge = { high:'risk-high', medium:'risk-medium', low:'risk-low' };
+
+  grid.innerHTML = recs.map(r => `
+    <div class="rec-card ${r.completed?'completed':''}" id="rec-${r.id}" style="--left-border:${r.left_color||riskColor[r.risk]};">
+      <div class="rec-header">
+        <div class="rec-food-icon" style="background:${r.icon_bg||'rgba(22,163,74,0.1)'};">${r.icon||'🍽️'}</div>
+        <div style="flex:1;">
+          <div class="rec-food-name">${r.food_name}</div>
+          <div class="rec-date">${r.date}</div>
+        </div>
+        <div>
+          <span class="badge ${riskBadge[r.risk]||'badge-muted'}">${riskLabel[r.risk]||r.risk}</span>
+        </div>
+      </div>
+      <div class="rec-actions-list">
+        ${(r.actions||[]).map(a=>`
+          <div class="rec-action-item">
+            <i class="${a.icon}"></i>
+            <span>${a.text}</span>
+          </div>`).join('')}
+      </div>
+      <div class="rec-footer">
+        <span style="font-size:0.78rem;color:var(--text-muted);">
+          <span class="priority-dot" style="background:${riskColor[r.risk]||'var(--primary)'}"></span>
+          ${r.priority?.toUpperCase()||'NORMAL'} PRIORITY
+        </span>
+        <button class="btn ${r.completed?'btn-outline':'btn-primary'} btn-sm" onclick="toggleComplete(${r.id})">
+          ${r.completed
+            ? '<i class="fa-solid fa-rotate-left"></i> Mark Pending'
+            : '<i class="fa-solid fa-check"></i> Mark Completed'}
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function toggleComplete(id) {
+  const rec = allRecs.find(r=>r.id===id);
+  if (!rec) return;
+  rec.completed = !rec.completed;
+  updateStats();
+  renderRecs();
+  showToast(rec.completed ? 'Marked as completed! ✅' : 'Marked as pending.', rec.completed?'success':'info');
+}
+
+function filterRecs(type, btn) {
+  currentFilter = type;
+  document.querySelectorAll('.tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRecs();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+loadRecommendations();
+</script>
+</body>
+</html>

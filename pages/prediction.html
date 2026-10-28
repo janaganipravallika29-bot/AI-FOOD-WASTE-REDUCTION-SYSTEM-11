@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Prediction — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .prediction-layout { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+    .predict-form-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; }
+    .predict-result-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; display:flex; flex-direction:column; }
+    .result-placeholder { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:var(--text-muted); min-height:300px; }
+    .result-placeholder i { font-size:4rem; color:var(--text-dim); margin-bottom:16px; }
+    .result-content { display:none; }
+    .risk-meter { position:relative; margin:20px auto; width:200px; height:100px; overflow:hidden; }
+    .risk-meter canvas { position:absolute; top:0; left:0; }
+    .risk-meter-label { position:absolute; bottom:0; left:50%; transform:translateX(-50%); font-size:1.8rem; font-weight:900; font-family:'Poppins',sans-serif; text-align:center; }
+    .factor-bar { margin-bottom:12px; }
+    .factor-label { display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.82rem; }
+    .factor-fill { height:6px; border-radius:3px; transition:width 1s ease; }
+    .history-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; margin-top:24px; }
+    .pred-history-item { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); }
+    .pred-history-item:last-child { border-bottom:none; }
+    .pred-food-icon { width:40px; height:40px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+    @media(max-width:900px){ .prediction-layout{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Main Menu</div>
+    <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+    <a href="foodentry.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
+    <a href="prediction.html"      class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
+    <a href="recommendations.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
+    <div class="nav-section-title">Tracking</div>
+    <a href="waste_tracking.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span> Waste Tracking</a>
+    <a href="reports.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> Reports</a>
+    <a href="notifications.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
+    <div class="nav-section-title">Account</div>
+    <a href="profile.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">U</div>
+      <div><div class="user-name" id="userName">User</div><div class="user-role">Regular User</div></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left"><h1>AI Prediction</h1><p>Machine Learning waste risk analysis</p></div>
+    </div>
+    <div class="topbar-right">
+      <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
+      <a href="foodentry.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Food</a>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="page-header">
+      <div>
+        <h2><i class="fa-solid fa-brain" style="color:var(--primary);margin-right:10px;"></i>AI Waste Risk Prediction</h2>
+        <p>Our Machine Learning model analyzes food attributes to predict waste probability.</p>
+      </div>
+    </div>
+
+    <div class="prediction-layout">
+      <!-- Input Form -->
+      <div class="predict-form-card">
+        <h3 style="margin-bottom:20px;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-sliders" style="color:var(--primary);"></i> Food Parameters</h3>
+
+        <div class="form-group">
+          <label class="form-label">Select Saved Food (or fill manually)</label>
+          <div class="input-group">
+            <i class="fa-solid fa-bowl-food input-icon"></i>
+            <select id="savedFoodSelect" class="form-control" style="padding-left:40px;" onchange="loadSavedFood(this.value)">
+              <option value="">— Enter manually —</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+
+        <div class="form-group">
+          <label class="form-label">Food Name *</label>
+          <input type="text" id="predFoodName" class="form-control" placeholder="e.g., Milk, Tomatoes...">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category *</label>
+            <select id="predCategory" class="form-control">
+              <option value="">Select Category</option>
+              <option value="fruits">Fruits</option>
+              <option value="vegetables">Vegetables</option>
+              <option value="dairy">Dairy</option>
+              <option value="grains">Grains</option>
+              <option value="meat">Meat</option>
+              <option value="bakery">Bakery</option>
+              <option value="beverages">Beverages</option>
+              <option value="packaged">Packaged</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Storage Type *</label>
+            <select id="predStorage" class="form-control">
+              <option value="">Select Storage</option>
+              <option value="refrigerator">Refrigerator</option>
+              <option value="freezer">Freezer</option>
+              <option value="pantry">Pantry</option>
+              <option value="countertop">Countertop</option>
+              <option value="cellar">Cellar</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Quantity *</label>
+            <input type="number" id="predQty" class="form-control" placeholder="Amount" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Days Until Expiry *</label>
+            <input type="number" id="predDays" class="form-control" placeholder="e.g., 3" min="0" max="365">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Previous Waste Level (your history)</label>
+          <div style="display:flex;gap:10px;">
+            <button type="button" class="btn btn-outline btn-sm" id="wasteLow"    onclick="setWaste('low')"    style="flex:1;">Low</button>
+            <button type="button" class="btn btn-outline btn-sm" id="wasteMedium" onclick="setWaste('medium')" style="flex:1;">Medium</button>
+            <button type="button" class="btn btn-outline btn-sm" id="wasteHigh"   onclick="setWaste('high')"   style="flex:1;">High</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary w-full" id="predictBtn" onclick="runPrediction()" style="padding:14px;justify-content:center;margin-top:8px;">
+          <i class="fa-solid fa-robot"></i> Run AI Prediction
+        </button>
+      </div>
+
+      <!-- Result Panel -->
+      <div class="predict-result-card">
+        <h3 style="margin-bottom:20px;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-chart-simple" style="color:var(--primary);"></i> Prediction Result</h3>
+
+        <div class="result-placeholder" id="resultPlaceholder">
+          <i class="fa-solid fa-brain"></i>
+          <p style="font-size:1rem;font-weight:600;margin-bottom:6px;">Awaiting Analysis</p>
+          <p>Fill in the food parameters and click<br><strong>Run AI Prediction</strong> to get results.</p>
+        </div>
+
+        <div class="result-content" id="resultContent">
+          <!-- Food Image & Detection Preview -->
+          <div id="resultImageContainer" style="display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:16px;">
+            <div id="resultImageWrap" style="width:64px;height:64px;border-radius:var(--radius-sm);overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img id="resultFoodImg" src="" alt="Food" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <span id="resultFoodEmoji" style="font-size:2.2rem;">🍽️</span>
+            </div>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <h4 id="resultCanonicalTitle" style="font-size:1.05rem;font-weight:700;margin:0;">Food Item</h4>
+                <span id="resultVerifiedBadge" class="badge badge-success" style="font-size:0.7rem;"><i class="fa-solid fa-check"></i> AI Verified</span>
+              </div>
+              <p style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;" id="resultStorageInsight">Ideal Storage: Refrigerator (2-4°C)</p>
+            </div>
+          </div>
+
+          <!-- Risk Badge & Score -->
+          <div class="risk-display" style="padding:10px 0 16px 0;">
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Predicted Waste Risk</p>
+            <div class="risk-badge-large" id="riskBadgeLarge">MEDIUM RISK</div>
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:8px;line-height:1.5;" id="resultExplanation">
+              Awaiting prediction analysis...
+            </p>
+          </div>
+
+          <!-- Risk Score Bar -->
+          <div style="margin:8px 0 16px 0;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:0.82rem;color:var(--text-muted);">Waste Probability Index</span>
+              <span style="font-weight:800;font-size:0.95rem;color:var(--accent);" id="riskScoreText">0%</span>
+            </div>
+            <div class="progress-bar" style="height:10px;background:rgba(255,255,255,0.06);">
+              <div class="progress-fill" id="riskScoreBar" style="width:0%;border-radius:5px;transition:width 0.9s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.72rem;color:var(--text-dim);">
+              <span>Low (Safe)</span><span>Medium</span><span>High (Urgent)</span>
+            </div>
+          </div>
+
+          <!-- Contributing Factors -->
+          <div style="margin:12px 0;">
+            <p style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Contributing Risk Factors</p>
+            <div id="factorBars"></div>
+          </div>
+
+          <!-- AI Rescue & Spoilage Tips -->
+          <div id="aiRescueCard" style="background:rgba(34,197,94,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:var(--radius-md);padding:12px 14px;margin:12px 0;">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+              <i class="fa-solid fa-lightbulb"></i> Recommended Rescue Action
+            </div>
+            <div id="aiRescueText" style="font-size:0.83rem;color:var(--text-secondary);line-height:1.5;">
+              Use or freeze food before expiration to eliminate waste.
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:10px;margin-top:auto;padding-top:12px;">
+            <a href="recommendations.html" class="btn btn-primary" style="flex:1;justify-content:center;">
+              <i class="fa-solid fa-lightbulb"></i> Smart Recommendations
+            </a>
+            <button class="btn btn-outline btn-sm btn-icon" title="Save prediction" onclick="savePrediction()">
+              <i class="fa-solid fa-floppy-disk"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prediction History -->
+    <div class="history-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h3><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);margin-right:8px;"></i>Recent Predictions</h3>
+        <span style="font-size:0.82rem;color:var(--text-muted);">Last 5 predictions</span>
+      </div>
+      <div id="predictionHistory">
+        <div class="pred-history-item">
+          <div class="pred-food-icon" style="background:rgba(239,68,68,0.1);">🍅</div>
+          <div style="flex:1;"><div style="font-weight:600;font-size:0.9rem;">Tomatoes</div><div style="font-size:0.78rem;color:var(--text-muted);">Aug 11, 2025 · 2 days remaining</div></div>
+          <span class="badge risk-high">HIGH</span>
+          <span style="font-size:0.85rem;color:var(--text-muted);">82%</span>
+        </div>
+        <div class="pred-history-item">
+          <div class="pred-food-icon" style="background:rgba(245,158,11,0.1);">🍞</div>
+          <div style="flex:1;"><div style="font-weight:600;font-size:0.9rem;">Bread</div><div style="font-size:0.78rem;color:var(--text-muted);">Aug 10, 2025 · 3 days remaining</div></div>
+          <span class="badge risk-medium">MEDIUM</span>
+          <span style="font-size:0.85rem;color:var(--text-muted);">54%</span>
+        </div>
+        <div class="pred-history-item">
+          <div class="pred-food-icon" style="background:rgba(34,197,94,0.1);">🌾</div>
+          <div style="flex:1;"><div style="font-weight:600;font-size:0.9rem;">Rice</div><div style="font-size:0.78rem;color:var(--text-muted);">Aug 09, 2025 · 365 days remaining</div></div>
+          <span class="badge risk-low">LOW</span>
+          <span style="font-size:0.85rem;color:var(--text-muted);">8%</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+const user = JSON.parse(localStorage.getItem('fw_user') || '{"name":"Pravallika Janagani"}');
+const initials = (user.name||'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+document.getElementById('userName').textContent = user.name || 'User';
+document.getElementById('userAvatar').textContent = initials;
+
+let selectedWasteLevel = 'medium';
+let currentPrediction  = null;
+let currentSelectedFoodId = null;
+
+function setWaste(level) {
+  selectedWasteLevel = level;
+  ['low','medium','high'].forEach(l => {
+    const btn = document.getElementById('waste'+l.charAt(0).toUpperCase()+l.slice(1));
+    btn.className = l === level ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+    btn.style.flex = '1';
+  });
+}
+setWaste('medium');
+
+// Load saved foods into dropdown
+function loadSavedFoods() {
+  const foods = FoodDB.getFoods();
+  const sel = document.getElementById('savedFoodSelect');
+  sel.innerHTML = '<option value="">— Enter manually or select saved food —</option>';
+  
+  foods.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = `${f.food_name} (${f.quantity} ${f.unit || ''} · ${f.category})`;
+    sel.appendChild(opt);
+  });
+
+  // Check URL parameters for id or food, or check fw_selected_predict_id
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetId = urlParams.get('id') || urlParams.get('food') || localStorage.getItem('fw_selected_predict_id');
+
+  if (targetId) {
+    localStorage.removeItem('fw_selected_predict_id');
+    const matched = FoodDB.getFoodById(targetId);
+    if (matched) {
+      sel.value = matched.id;
+      loadSavedFood(matched.id);
+      setTimeout(() => {
+        runPrediction();
+      }, 300);
+    }
+  }
+}
+
+function loadSavedFood(val) {
+  if (!val) {
+    currentSelectedFoodId = null;
+    return;
+  }
+  const f = FoodDB.getFoodById(val);
+  if (!f) return;
+
+  currentSelectedFoodId = f.id;
+  document.getElementById('predFoodName').value = f.food_name || '';
+  document.getElementById('predCategory').value  = f.category || '';
+  document.getElementById('predStorage').value   = f.storage_type || 'refrigerator';
+  document.getElementById('predQty').value       = f.quantity || 1;
+
+  if (f.expiry_date) {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const exp = new Date(f.expiry_date);
+    exp.setHours(0,0,0,0);
+    const days = Math.max(0, Math.ceil((exp - today) / 86400000));
+    document.getElementById('predDays').value = days;
+  } else {
+    document.getElementById('predDays').value = 3;
+  }
+}
+
+async function runPrediction() {
+  const name     = document.getElementById('predFoodName').value.trim();
+  const category = document.getElementById('predCategory').value;
+  const storage  = document.getElementById('predStorage').value;
+  const qty      = parseFloat(document.getElementById('predQty').value) || 1;
+  const days     = parseInt(document.getElementById('predDays').value);
+
+  if (!name) {
+    showToast('Please enter a Food Name.', 'warning');
+    document.getElementById('predFoodName').focus();
+    return;
+  }
+  if (!category) {
+    showToast('Please select a Category.', 'warning');
+    document.getElementById('predCategory').focus();
+    return;
+  }
+  if (!storage) {
+    showToast('Please select a Storage Type.', 'warning');
+    document.getElementById('predStorage').focus();
+    return;
+  }
+  if (isNaN(days)) {
+    showToast('Please enter Days Until Expiry.', 'warning');
+    document.getElementById('predDays').focus();
+    return;
+  }
+
+  const btn = document.getElementById('predictBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing with AI Model...';
+
+  await new Promise(r => setTimeout(r, 600)); // Smooth processing feel
+
+  const foodPayload = {
+    food_name: name,
+    category: category,
+    storage_type: storage,
+    quantity: qty,
+    days_until_expiry: days,
+    previous_waste: selectedWasteLevel
+  };
+
+  let result;
+  try {
+    const res = await fetch('/api/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(foodPayload)
+    });
+    if (res.ok) {
+      result = await res.json();
+    } else {
+      result = FoodDB.predictWasteRisk(foodPayload);
+    }
+  } catch {
+    result = FoodDB.predictWasteRisk(foodPayload);
+  }
+
+  // Update selected food in database if exists
+  if (currentSelectedFoodId) {
+    const currentFood = FoodDB.getFoodById(currentSelectedFoodId);
+    if (currentFood) {
+      currentFood.risk = result.risk;
+      currentFood.risk_score = result.score;
+      FoodDB.saveFood(currentFood);
+    }
+  }
+
+  currentPrediction = { ...result, food_name: name, category: category };
+  FoodDB.savePrediction(currentPrediction);
+
+  displayResult(result, name);
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-robot"></i> Run AI Prediction';
+}
+
+function displayResult(result, name) {
+  document.getElementById('resultPlaceholder').style.display = 'none';
+  document.getElementById('resultContent').style.display     = 'flex';
+  document.getElementById('resultContent').style.flexDirection = 'column';
+
+  const riskColors = { high:'high', medium:'medium', low:'low' };
+  const badge = document.getElementById('riskBadgeLarge');
+  badge.textContent = result.risk.toUpperCase() + ' RISK';
+  badge.className   = `risk-badge-large ${riskColors[result.risk] || 'medium'}`;
+
+  // Food Profile Details
+  const profile = result.food_profile || FoodKnowledge.matchFood(name);
+  const canonicalName = profile ? profile.canonical : name;
+  const emoji = profile ? profile.emoji : '🍽️';
+
+  document.getElementById('resultCanonicalTitle').textContent = `${canonicalName} (${result.category.toUpperCase()})`;
+  document.getElementById('resultExplanation').textContent = result.explanation || `Estimated ${result.risk.toUpperCase()} risk based on shelf-life and storage conditions.`;
+
+  // Image / Emoji handling
+  const imgEl = document.getElementById('resultFoodImg');
+  const emojiEl = document.getElementById('resultFoodEmoji');
+  
+  let currentFoodObj = currentSelectedFoodId ? FoodDB.getFoodById(currentSelectedFoodId) : null;
+  if (currentFoodObj && currentFoodObj.image) {
+    imgEl.src = currentFoodObj.image;
+    imgEl.style.display = 'block';
+    emojiEl.style.display = 'none';
+  } else {
+    imgEl.style.display = 'none';
+    emojiEl.style.display = 'block';
+    emojiEl.textContent = emoji;
+  }
+
+  // Storage insight
+  const idealStorage = profile ? `Ideal Temp: ${profile.idealTemp} · Storage: ${profile.defaultStorage}` : `Storage: ${result.storage_type || 'Standard'}`;
+  document.getElementById('resultStorageInsight').textContent = idealStorage;
+
+  // Rescue & Spoilage Tips
+  const rescueCard = document.getElementById('aiRescueCard');
+  const rescueText = document.getElementById('aiRescueText');
+  if (profile && profile.tips && profile.tips.length) {
+    rescueText.innerHTML = `<strong>💡 AI Preservation Tip:</strong> ${profile.tips[0]}<br><span style="margin-top:4px;display:block;"><strong>🍳 Quick Use-up Recipes:</strong> ${profile.recipes.join(', ')}</span>`;
+    rescueCard.style.display = 'block';
+  } else {
+    rescueText.textContent = `Consume or freeze within ${result.days_remaining || 2} days to minimize waste.`;
+  }
+
+  // Score and progress bar
+  const score = result.score || 50;
+  document.getElementById('riskScoreText').textContent = score + '%';
+  const bar = document.getElementById('riskScoreBar');
+  bar.style.width = '0%';
+  bar.className   = 'progress-fill ' + (result.risk === 'high' ? 'red' : result.risk === 'medium' ? 'orange' : 'green');
+  setTimeout(() => { bar.style.width = score + '%'; }, 100);
+
+  // Factor bars
+  const factors = result.factors || [
+    { label:'Days Until Expiry', value: score, color: result.risk === 'high' ? '#ef4444' : '#f59e0b' },
+    { label:'Food Perishability Rate', value: Math.min(100, Math.round(score * 0.85)), color:'#f59e0b' },
+    { label:'Storage Temperature Impact', value: Math.min(100, Math.round(score * 0.65)), color:'#3b82f6' },
+    { label:'Volume & Quantity Burden', value: Math.min(100, Math.round(score * 0.55)), color:'#8b5cf6' },
+    { label:'Historical Waste Factor', value: Math.min(100, Math.round(score * 0.7)), color:'#14b8a6' },
+  ];
+
+  document.getElementById('factorBars').innerHTML = factors.map(f => `
+    <div class="factor-bar">
+      <div class="factor-label"><span>${f.label}</span><span style="font-weight:600;">${f.value}%</span></div>
+      <div class="progress-bar" style="height:6px;background:rgba(255,255,255,0.06);">
+        <div class="factor-fill" style="width:0%;background:${f.color};height:100%;border-radius:3px;transition:width 0.8s ease;" data-width="${f.value}%"></div>
+      </div>
+    </div>`).join('');
+
+  setTimeout(() => {
+    document.querySelectorAll('.factor-fill').forEach(el => { el.style.width = el.dataset.width; });
+  }, 150);
+
+  // Add to history
+  addToHistory(canonicalName, result.risk, score, emoji);
+  showToast(`Prediction Complete: ${result.risk.toUpperCase()} Risk (${score}%)`, result.risk === 'high' ? 'error' : result.risk === 'medium' ? 'warning' : 'success');
+}
+
+function addToHistory(name, risk, score, emoji = '🍽️') {
+  const histEl = document.getElementById('predictionHistory');
+  if (!histEl) return;
+
+  const item = document.createElement('div');
+  item.className = 'pred-history-item';
+  const bg = { high:'rgba(239,68,68,0.15)', medium:'rgba(245,158,11,0.15)', low:'rgba(34,197,94,0.15)' };
+  
+  item.innerHTML = `
+    <div class="pred-food-icon" style="background:${bg[risk] || bg.low};">${emoji}</div>
+    <div style="flex:1;">
+      <div style="font-weight:600;font-size:0.9rem;">${name}</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);">Just now · AI Model Prediction</div>
+    </div>
+    <span class="badge risk-${risk}">${risk.toUpperCase()}</span>
+    <span style="font-weight:700;font-size:0.9rem;color:var(--text-primary);">${score}%</span>`;
+  
+  histEl.insertBefore(item, histEl.firstChild);
+}
+
+function savePrediction() {
+  if (!currentPrediction) return;
+  FoodDB.savePrediction(currentPrediction);
+  showToast('Prediction record saved!', 'success');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+// Initial load
+loadSavedFoods();
+</script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI-Based Food Waste Reduction System — Track food, predict waste risk with Machine Learning, get smart recommendations and reduce your food waste today.">
+  <title>AI Food Waste Reduction System — Track. Predict. Act.</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* ── Landing Extra Styles ── */
+    .floating-cards {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 48px;
+    }
+    .floating-card {
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      animation: float 3s ease-in-out infinite;
+    }
+    .floating-card:nth-child(2) { animation-delay: 0.5s; }
+    .floating-card:nth-child(3) { animation-delay: 1s; }
+    .floating-card .fc-icon {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .problem-left h2 { font-size: 2.4rem; margin-bottom: 18px; }
+    .problem-left p  { color: var(--text-muted); line-height: 1.8; margin-bottom: 24px; }
+    .stat-pills { display: flex; flex-wrap: wrap; gap: 12px; }
+    .stat-pill {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+    }
+    .stat-pill .sp-num { font-size: 1.4rem; font-weight: 800; font-family:'Poppins',sans-serif; }
+    .stat-pill .sp-lbl { font-size: 0.78rem; color: var(--text-muted); }
+
+    .problem-visual {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .problem-circle {
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(22,163,74,0.15), transparent 70%);
+      border: 2px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      animation: float 4s ease-in-out infinite;
+    }
+    .problem-circle .pc-emoji { font-size: 4rem; margin-bottom: 12px; }
+    .problem-circle .pc-num   { font-size: 2.8rem; font-weight: 900; font-family:'Poppins',sans-serif; }
+    .problem-circle .pc-text  { font-size: 0.82rem; color: var(--text-muted); }
+
+    .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+    .benefit-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: all var(--transition);
+      text-align: center;
+    }
+    .benefit-card:hover { transform: translateY(-4px); border-color: var(--border-hover); box-shadow: var(--shadow-glow); }
+    .benefit-icon { font-size: 2.5rem; margin-bottom: 14px; display: block; }
+    .benefit-card h3 { font-size: 1rem; margin-bottom: 8px; }
+    .benefit-card p  { font-size: 0.85rem; color: var(--text-muted); }
+
+    .cta-section {
+      padding: 80px 6%;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(22,163,74,0.1), rgba(16,185,129,0.05));
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(22,163,74,0.1), transparent 70%);
+      border-radius: 50%;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      pointer-events: none;
+    }
+    .cta-section h2 { font-size: 2.6rem; margin-bottom: 16px; }
+    .cta-section p  { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 36px; }
+    .cta-actions    { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    .counter { transition: all 0.5s ease; }
+
+    /* Scroll animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media(max-width:768px){
+      .problem-grid { grid-template-columns: 1fr; }
+      .problem-visual { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ─────────────────────────────────────────── -->
+<nav class="public-nav" id="publicNav">
+  <div class="nav-logo">
+    <div class="nav-logo-icon">🌿</div>
+    <span>FoodWise <span class="text-gradient">AI</span></span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#benefits">Benefits</a>
+    <a href="#about">About</a>
+  </div>
+  <div class="nav-actions">
+    <a href="pages/login.html" class="btn btn-outline btn-sm">Login</a>
+    <a href="pages/signup.html" class="btn btn-primary btn-sm">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-content">
+    <div class="hero-tag">
+      <i class="fa-solid fa-robot"></i>
+      AI-Powered Food Intelligence
+    </div>
+    <h1>Reduce Food Waste<br><span class="text-gradient">With Artificial Intelligence</span></h1>
+    <p>Track food items, predict waste risk with Machine Learning, and receive smart recommendations to save food — and money.</p>
+    <div class="hero-actions">
+      <a href="pages/signup.html" class="btn btn-primary btn-lg">
+        <i class="fa-solid fa-rocket"></i> Get Started Free
+      </a>
+      <a href="#how-it-works" class="btn btn-outline btn-lg">
+        <i class="fa-solid fa-play"></i> See How It Works
+      </a>
+    </div>
+
+    <!-- Floating mini-cards -->
+    <div class="floating-cards">
+      <div class="floating-card">
+        <div class="fc-icon" style="background:rgba(34,197,94,0.15);color:#4ade80;">🤖</div>
+        AI Prediction
+      </div>
+      <div class="floating-card">
+        <div class="fc-icon" style="background:rgba(245,158,11,0.15);color:#fbbf24;">⏰</div>
+        Expiry Alerts
+      </div>
+      <div class="floating-card">
+        <div class="fc-icon" style="background:rgba(59,130,246,0.15);color:#60a5fa;">📊</div>
+        Analytics Dashboard
+      </div>
+      <div class="floating-card">
+        <div class="fc-icon" style="background:rgba(139,92,246,0.15);color:#a78bfa;">💡</div>
+        Smart Recommendations
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat-item">
+        <div class="hero-stat-num text-gradient"><span class="counter" data-target="1.3">0</span>B</div>
+        <div class="hero-stat-lbl">Tons Food Wasted Globally/yr</div>
+      </div>
+      <div class="hero-stat-item">
+        <div class="hero-stat-num text-gradient"><span class="counter" data-target="30">0</span>%</div>
+        <div class="hero-stat-lbl">Of All Food Produced is Wasted</div>
+      </div>
+      <div class="hero-stat-item">
+        <div class="hero-stat-num text-gradient">$<span class="counter" data-target="940">0</span>B</div>
+        <div class="hero-stat-lbl">Annual Economic Cost</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Problem Section ─────────────────────────────────────── -->
+<section class="section" id="about">
+  <div class="problem-grid reveal">
+    <div class="problem-left">
+      <div class="section-tag"><i class="fa-solid fa-triangle-exclamation"></i> The Problem</div>
+      <h2>Why Food Waste <span class="text-gradient">Matters</span></h2>
+      <p>
+        Every year, billions of tons of food are wasted globally. Poor tracking, forgotten expiry dates, and a lack of intelligent insight lead to unnecessary waste — costing families and the planet dearly.
+      </p>
+      <p>Our AI-powered system addresses every root cause of food waste through real-time tracking, machine learning predictions, and personalised action plans.</p>
+      <div class="stat-pills">
+        <div class="stat-pill">
+          <span class="sp-num text-gradient">30%</span>
+          <div><div class="sp-lbl">Food wasted</div><div class="sp-lbl">globally</div></div>
+        </div>
+        <div class="stat-pill">
+          <span class="sp-num" style="color:#fbbf24;">8%</span>
+          <div><div class="sp-lbl">GHG emissions</div><div class="sp-lbl">from food waste</div></div>
+        </div>
+        <div class="stat-pill">
+          <span class="sp-num" style="color:#f87171;">$1,500</span>
+          <div><div class="sp-lbl">Average family</div><div class="sp-lbl">waste per year</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="problem-visual">
+      <div class="problem-circle">
+        <div class="pc-emoji">♻️</div>
+        <div class="pc-num text-gradient">AI</div>
+        <div class="pc-text">Powered Solution</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features Section ────────────────────────────────────── -->
+<section class="section section-light" id="features">
+  <div class="section-header reveal">
+    <div class="section-tag"><i class="fa-solid fa-stars"></i> Features</div>
+    <h2 class="section-title">Everything You Need to <span class="text-gradient">Eliminate Waste</span></h2>
+    <p class="section-subtitle">A complete AI toolkit that turns food data into actionable intelligence</p>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feature-card" style="--gradient:linear-gradient(135deg,rgba(34,197,94,0.08),transparent);">
+      <div class="feature-icon" style="background:rgba(34,197,94,0.15);color:#4ade80;">🍎</div>
+      <h3>Smart Food Tracking</h3>
+      <p>Log food items with quantity, purchase dates, expiry dates, and storage details. Never forget what's in your fridge again.</p>
+    </div>
+    <div class="feature-card" style="--gradient:linear-gradient(135deg,rgba(59,130,246,0.08),transparent);">
+      <div class="feature-icon" style="background:rgba(59,130,246,0.15);color:#60a5fa;">🤖</div>
+      <h3>AI Waste Prediction</h3>
+      <p>Our Machine Learning model analyzes your food patterns to predict which items are at HIGH, MEDIUM, or LOW risk of being wasted.</p>
+    </div>
+    <div class="feature-card" style="--gradient:linear-gradient(135deg,rgba(245,158,11,0.08),transparent);">
+      <div class="feature-icon" style="background:rgba(245,158,11,0.15);color:#fbbf24;">⏰</div>
+      <h3>Expiry Monitoring</h3>
+      <p>Real-time expiry tracking with color-coded alerts. Get notified days before your food expires so you can act in time.</p>
+    </div>
+    <div class="feature-card" style="--gradient:linear-gradient(135deg,rgba(139,92,246,0.08),transparent);">
+      <div class="feature-icon" style="background:rgba(139,92,246,0.15);color:#a78bfa;">💡</div>
+      <h3>Smart Recommendations</h3>
+      <p>Personalized, actionable recommendations based on your food data — from meal suggestions to storage optimization tips.</p>
+    </div>
+    <div class="feature-card" style="--gradient:linear-gradient(135deg,rgba(20,184,166,0.08),transparent);">
+      <div class="feature-icon" style="background:rgba(20,184,166,0.15);color:#2dd4bf;">📊</div>
+      <h3>Analytics Dashboard</h3>
+      <p>Interactive charts showing weekly/monthly waste trends, category breakdowns, and your waste reduction score progress.</p>
+    </div>
+    <div class="feature-card" style="--gradient:linear-gradient(135deg,rgba(239,68,68,0.08),transparent);">
+      <div class="feature-icon" style="background:rgba(239,68,68,0.15);color:#f87171;">📋</div>
+      <h3>Detailed Reports</h3>
+      <p>Generate daily, weekly, and monthly waste reports. Export as PDF or CSV to track your progress over time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── How It Works ────────────────────────────────────────── -->
+<section class="section" id="how-it-works">
+  <div class="section-header reveal">
+    <div class="section-tag"><i class="fa-solid fa-diagram-project"></i> Process</div>
+    <h2 class="section-title">How <span class="text-gradient">FoodWise AI</span> Works</h2>
+    <p class="section-subtitle">Four simple steps to dramatically reduce your food waste</p>
+  </div>
+  <div class="steps-grid reveal">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <h3>Sign Up & Log Food</h3>
+      <p>Create your account and start logging food items with purchase dates, quantities, and expiry information.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <h3>AI Analyzes Your Data</h3>
+      <p>Our Machine Learning model processes your food patterns and predicts which items are at risk of being wasted.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <h3>Receive Recommendations</h3>
+      <p>Get personalized, actionable recommendations — what to consume first, how to store food, and what to avoid buying.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <h3>Track & Improve</h3>
+      <p>Monitor your waste reduction score over time and see real measurable improvements in your food management.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Benefits Section ────────────────────────────────────── -->
+<section class="section section-light" id="benefits">
+  <div class="section-header reveal">
+    <div class="section-tag"><i class="fa-solid fa-leaf"></i> Benefits</div>
+    <h2 class="section-title">Why Choose <span class="text-gradient">FoodWise AI</span>?</h2>
+    <p class="section-subtitle">Real benefits for you, your family, and the planet</p>
+  </div>
+  <div class="benefits-grid reveal">
+    <div class="benefit-card">
+      <span class="benefit-icon">💰</span>
+      <h3>Save Money</h3>
+      <p>Reduce wasted groceries and save hundreds of dollars annually by consuming food before it expires.</p>
+    </div>
+    <div class="benefit-card">
+      <span class="benefit-icon">🌍</span>
+      <h3>Help the Planet</h3>
+      <p>Food waste generates 8% of global greenhouse gas emissions. Every item saved makes a real difference.</p>
+    </div>
+    <div class="benefit-card">
+      <span class="benefit-icon">🧠</span>
+      <h3>AI-Powered Insights</h3>
+      <p>Machine learning identifies patterns you'd never notice, giving you a data advantage over food waste.</p>
+    </div>
+    <div class="benefit-card">
+      <span class="benefit-icon">📱</span>
+      <h3>Easy to Use</h3>
+      <p>Clean, intuitive interface designed for everyday use. No technical knowledge required.</p>
+    </div>
+    <div class="benefit-card">
+      <span class="benefit-icon">🔔</span>
+      <h3>Proactive Alerts</h3>
+      <p>Get notified before food expires, not after. Our notification system keeps you one step ahead.</p>
+    </div>
+    <div class="benefit-card">
+      <span class="benefit-icon">📈</span>
+      <h3>Track Progress</h3>
+      <p>Your personal waste reduction score shows measurable improvement over weeks and months.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA Section ─────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="section-tag" style="margin-bottom:20px;display:inline-flex;"><i class="fa-solid fa-rocket"></i> Get Started Today</div>
+  <h2>Ready to <span class="text-gradient">Reduce Your Food Waste?</span></h2>
+  <p>Join thousands of users using AI to make smarter food decisions. Start for free today.</p>
+  <div class="cta-actions">
+    <a href="pages/signup.html" class="btn btn-primary btn-lg">
+      <i class="fa-solid fa-user-plus"></i> Create Free Account
+    </a>
+    <a href="pages/login.html" class="btn btn-outline btn-lg">
+      <i class="fa-solid fa-right-to-bracket"></i> Sign In
+    </a>
+  </div>
+</section>
+
+<!-- ── Footer ──────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="nav-logo" style="margin-bottom:12px;">
+        <div class="nav-logo-icon">🌿</div>
+        <span style="font-family:'Poppins',sans-serif;font-weight:700;">FoodWise <span class="text-gradient">AI</span></span>
+      </div>
+      <p>An AI-powered food waste reduction platform that combines machine learning, smart analytics, and personalized recommendations to help you waste less and live better.</p>
+    </div>
+    <div>
+      <h4>Platform</h4>
+      <ul>
+        <li><a href="pages/dashboard.html"><i class="fa-solid fa-chart-pie fa-xs" style="margin-right:6px;color:var(--primary);"></i>Dashboard</a></li>
+        <li><a href="pages/foodentry.html"><i class="fa-solid fa-plus fa-xs" style="margin-right:6px;color:var(--primary);"></i>Food Entry</a></li>
+        <li><a href="pages/prediction.html"><i class="fa-solid fa-brain fa-xs" style="margin-right:6px;color:var(--primary);"></i>AI Prediction</a></li>
+        <li><a href="pages/reports.html"><i class="fa-solid fa-file-chart-column fa-xs" style="margin-right:6px;color:var(--primary);"></i>Reports</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Features</h4>
+      <ul>
+        <li><a href="#">Food Tracking</a></li>
+        <li><a href="#">Expiry Monitoring</a></li>
+        <li><a href="#">Waste Prediction</a></li>
+        <li><a href="#">Recommendations</a></li>
+        <li><a href="#">Analytics</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Account</h4>
+      <ul>
+        <li><a href="pages/login.html">Login</a></li>
+        <li><a href="pages/signup.html">Create Account</a></li>
+        <li><a href="pages/dashboard.html">Dashboard</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 FoodWise AI. All rights reserved. Built with ❤️ for a sustainable future.</p>
+    <p style="color:var(--accent);font-size:0.82rem;">🌿 Reducing food waste with Artificial Intelligence</p>
+  </div>
+</footer>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script src="script.js"></script>
+<script>
+  // ── Navbar scroll effect
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('publicNav');
+    nav.classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // ── Counter animation
+  function animateCounter(el) {
+    const target = parseFloat(el.dataset.target);
+    const isDecimal = target % 1 !== 0;
+    const duration = 2000;
+    const step = target / (duration / 16);
+    let current = 0;
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) {
+        current = target;
+        clearInterval(timer);
+      }
+      el.textContent = isDecimal ? current.toFixed(1) : Math.floor(current);
+    }, 16);
+  }
+
+  // ── Scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Animate counters inside this element
+        entry.target.querySelectorAll('.counter').forEach(c => animateCounter(c));
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => observer.observe(el));
+
+  // Animate hero counters on load
+  setTimeout(() => {
+    document.querySelectorAll('.hero .counter').forEach(c => animateCounter(c));
+  }, 500);
+</script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Create your FoodWise AI account — Start reducing food waste with AI today.">
+  <title>Sign Up — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .auth-right { width: 520px; }
+    .strength-label { font-size: 0.78rem; margin-top: 5px; font-weight: 600; }
+    .strength-label.weak   { color: var(--danger); }
+    .strength-label.fair   { color: var(--warning); }
+    .strength-label.good   { color: #3b82f6; }
+    .strength-label.strong { color: var(--success); }
+    .terms-check { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: var(--text-muted); }
+    .terms-check input { margin-top: 3px; accent-color: var(--primary); width: 16px; height: 16px; flex-shrink: 0; }
+    .terms-check a { color: var(--accent); }
+  </style>
+</head>
+<body class="auth-page">
+
+<!-- Left Panel -->
+<div class="auth-left">
+  <div style="position:relative;z-index:1;width:100%;max-width:360px;text-align:center;">
+    <div class="nav-logo" style="justify-content:center;margin-bottom:32px;">
+      <div class="nav-logo-icon" style="width:48px;height:48px;font-size:1.5rem;">🌿</div>
+      <span style="font-family:'Poppins',sans-serif;font-weight:700;font-size:1.2rem;">FoodWise <span class="text-gradient">AI</span></span>
+    </div>
+    <div class="auth-hero-icon">🥗</div>
+    <h2>Start Your Journey</h2>
+    <p>Join thousands of users reducing food waste every day with the power of Artificial Intelligence and smart tracking.</p>
+    <div style="margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div style="background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:var(--accent);">30%</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Average waste reduction</div>
+      </div>
+      <div style="background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:#fbbf24;">$500</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Saved annually avg</div>
+      </div>
+      <div style="background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:#60a5fa;">AI</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Powered predictions</div>
+      </div>
+      <div style="background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:#a78bfa;">Free</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Always free to use</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Right Panel -->
+<div class="auth-right">
+  <div class="auth-form-box" style="max-width:420px;">
+    <div class="logo-row">
+      <div class="nav-logo-icon">🌿</div>
+      <div>
+        <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:0.95rem;">FoodWise AI</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">AI-Powered Food Management</div>
+      </div>
+    </div>
+
+    <h1>Create Account</h1>
+    <p class="auth-sub">Fill in your details to get started for free</p>
+
+    <div id="signupAlert" class="alert alert-danger hidden">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span id="signupAlertMsg"></span>
+    </div>
+    <div id="signupSuccess" class="alert alert-success hidden">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>Account created! Redirecting to login...</span>
+    </div>
+
+    <form id="signupForm" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="fullName">Full Name</label>
+        <div class="input-group">
+          <i class="fa-solid fa-user input-icon"></i>
+          <input type="text" id="fullName" class="form-control" placeholder="John Doe" autocomplete="name" required>
+        </div>
+        <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="nameError">Full name is required.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="signupEmail">Email Address</label>
+        <div class="input-group">
+          <i class="fa-solid fa-envelope input-icon"></i>
+          <input type="email" id="signupEmail" class="form-control" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="signupEmailError">Please enter a valid email address.</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" for="signupPassword">Password</label>
+          <div class="input-group">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="signupPassword" class="form-control" placeholder="Min. 8 characters" autocomplete="new-password" required oninput="checkStrength(this.value)">
+            <button type="button" class="toggle-pass" onclick="togglePwd('signupPassword','icon1')">
+              <i id="icon1" class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <!-- Strength bar -->
+          <div class="strength-bar" id="strengthBar" style="margin-top:6px;">
+            <div class="strength-segment" id="seg1"></div>
+            <div class="strength-segment" id="seg2"></div>
+            <div class="strength-segment" id="seg3"></div>
+            <div class="strength-segment" id="seg4"></div>
+          </div>
+          <div class="strength-label" id="strengthLabel"></div>
+          <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="pwdError">Password must be at least 8 characters.</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" for="confirmPassword">Confirm Password</label>
+          <div class="input-group">
+            <i class="fa-solid fa-shield-halved input-icon"></i>
+            <input type="password" id="confirmPassword" class="form-control" placeholder="Repeat password" autocomplete="new-password" required>
+            <button type="button" class="toggle-pass" onclick="togglePwd('confirmPassword','icon2')">
+              <i id="icon2" class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="confirmError">Passwords do not match.</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:18px;">
+        <label class="terms-check">
+          <input type="checkbox" id="agreeTerms" required>
+          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+        </label>
+        <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="termsError">You must accept the terms.</div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full" id="signupBtn" style="justify-content:center;padding:14px;">
+        <i class="fa-solid fa-user-plus"></i>
+        <span id="signupBtnText">Create Account</span>
+      </button>
+    </form>
+
+    <p style="text-align:center;margin-top:20px;font-size:0.88rem;color:var(--text-muted);">
+      Already have an account?
+      <a href="login.html" style="color:var(--accent);font-weight:600;"> Sign In</a>
+    </p>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+  function togglePwd(id, iconId) {
+    const input = document.getElementById(id);
+    const icon  = document.getElementById(iconId);
+    if (input.type === 'password') { input.type = 'text'; icon.className = 'fa-solid fa-eye-slash'; }
+    else { input.type = 'password'; icon.className = 'fa-solid fa-eye'; }
+  }
+
+  function checkStrength(pwd) {
+    const segs  = ['seg1','seg2','seg3','seg4'];
+    const label = document.getElementById('strengthLabel');
+    const colors = { 0:'', 1:'#ef4444', 2:'#f59e0b', 3:'#3b82f6', 4:'#22c55e' };
+    const labels = { 0:'', 1:'Weak', 2:'Fair', 3:'Good', 4:'Strong' };
+    const classes= { 1:'weak', 2:'fair', 3:'good', 4:'strong' };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    segs.forEach((s,i) => {
+      document.getElementById(s).style.background = i < score ? colors[score] : 'var(--surface)';
+    });
+    label.textContent = labels[score];
+    label.className   = 'strength-label ' + (classes[score] || '');
+  }
+
+  document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let valid = true;
+    const name    = document.getElementById('fullName').value.trim();
+    const email   = document.getElementById('signupEmail').value.trim();
+    const pwd     = document.getElementById('signupPassword').value;
+    const confirm = document.getElementById('confirmPassword').value;
+    const terms   = document.getElementById('agreeTerms').checked;
+
+    const show = (id) => { document.getElementById(id).style.display = 'block'; valid = false; };
+    const hide = (id) => { document.getElementById(id).style.display = 'none'; };
+
+    if (!name)  show('nameError'); else hide('nameError');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) show('signupEmailError'); else hide('signupEmailError');
+    if (pwd.length < 8) show('pwdError'); else hide('pwdError');
+    if (pwd !== confirm) show('confirmError'); else hide('confirmError');
+    if (!terms) show('termsError'); else hide('termsError');
+
+    if (!valid) return;
+
+    const btn = document.getElementById('signupBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Creating account...';
+
+    try {
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password: pwd })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        localStorage.setItem('fw_token', data.token || '');
+        localStorage.setItem('fw_user', JSON.stringify(data.user || { name, email, role: 'user' }));
+        document.getElementById('signupSuccess').classList.remove('hidden');
+        showToast('Account created! Redirecting to Dashboard...', 'success');
+        setTimeout(() => window.location.href = 'dashboard.html', 1200);
+      } else {
+        document.getElementById('signupAlertMsg').textContent = data.message || 'Registration failed.';
+        document.getElementById('signupAlert').classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Account';
+      }
+    } catch {
+      // Demo/offline mode — save user session & redirect directly to dashboard
+      localStorage.setItem('fw_user', JSON.stringify({ name, email, role: 'user' }));
+      document.getElementById('signupSuccess').classList.remove('hidden');
+      document.getElementById('signupSuccess').querySelector('span').textContent = 'Account created! Redirecting to Dashboard...';
+      showToast(`Welcome, ${name}! Redirecting to Dashboard...`, 'success');
+      setTimeout(() => window.location.href = 'dashboard.html', 1200);
+    }
+  });
+</script>
+</body>
+</html>

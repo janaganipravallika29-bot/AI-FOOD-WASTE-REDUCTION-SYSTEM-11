@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Food Donation</title>
+
+    <link rel="stylesheet" href="../style.css">
+
+</head>
+
+<body class="donation-page">
+
+<div class="donation-card">
+
+<h1>Food Donation</h1>
+
+<h2>Donate Extra Food</h2>
+
+<form onsubmit="submitDonation(event)">
+
+<input
+type="text"
+id="donor"
+placeholder="Donor Name"
+required>
+
+<br><br>
+
+<input
+type="text"
+id="phone"
+placeholder="Phone Number"
+required>
+
+<br><br>
+
+<input
+type="text"
+id="address"
+placeholder="Address"
+required>
+
+<br><br>
+
+<textarea
+id="message"
+placeholder="Additional Message"
+rows="4">
+</textarea>
+
+<br><br>
+
+<button type="submit">
+
+Donate Food
+
+</button>
+
+</form>
+
+</div>
+
+<script src="../script.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);">🛡️</div>
+    <div><div class="logo-text">FoodWise Admin</div><div class="logo-sub">System Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Admin Controls</div>
+    <a href="admin.html"           class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Dashboard</a>
+    <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> User Dashboard</a>
+    <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> All Food Records</a>
+    <a href="reports.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> System Reports</a>
+    <a href="login.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);">AD</div>
+      <div><div class="user-name">System Administrator</div><div class="user-role">Super Admin</div></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left"><h1>Admin Portal</h1><p>Global platform analytics and user management</p></div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-avatar" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);">AD</div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="page-header">
+      <div>
+        <h2><i class="fa-solid fa-shield-halved" style="color:#a78bfa;margin-right:10px;"></i>Admin Overview</h2>
+        <p>Monitor platform statistics, registered users, ML performance, and system health.</p>
+      </div>
+    </div>
+
+    <!-- Admin KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card purple">
+        <div class="kpi-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="kpi-value">1,248</div>
+        <div class="kpi-label">Registered Users</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-icon"><i class="fa-solid fa-bowl-food"></i></div>
+        <div class="kpi-value">18,520</div>
+        <div class="kpi-label">Total Food Logs</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-icon"><i class="fa-solid fa-brain"></i></div>
+        <div class="kpi-value">14,210</div>
+        <div class="kpi-label">AI Predictions</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-icon"><i class="fa-solid fa-trash-can"></i></div>
+        <div class="kpi-value">2,140<small style="font-size:1rem">kg</small></div>
+        <div class="kpi-label">Total Waste Prevented</div>
+      </div>
+    </div>
+
+    <!-- Registered Users Management Table -->
+    <div class="card" style="padding:0;overflow:hidden;margin-top:24px;">
+      <div style="padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <h3><i class="fa-solid fa-users-gear" style="color:var(--primary);margin-right:8px;"></i>User Accounts</h3>
+        <span class="badge badge-info">Showing Active Users</span>
+      </div>
+      <div class="table-wrapper" style="border:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>User Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Food Items</th>
+              <th>Status</th>
+              <th>Joined Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Pravallika Janagani</strong></td>
+              <td>pravallikajanagani4@gmail.com</td>
+              <td><span class="badge badge-success">Regular User</span></td>
+              <td>48 items</td>
+              <td><span class="badge badge-success">Active</span></td>
+              <td>Aug 12, 2025</td>
+            </tr>
+            <tr>
+              <td><strong>Demo Account</strong></td>
+              <td>demo@foodwise.ai</td>
+              <td><span class="badge badge-info">Demo User</span></td>
+              <td>32 items</td>
+              <td><span class="badge badge-success">Active</span></td>
+              <td>Aug 01, 2025</td>
+            </tr>
+            <tr>
+              <td><strong>John Doe</strong></td>
+              <td>john.doe@example.com</td>
+              <td><span class="badge badge-muted">Regular User</span></td>
+              <td>14 items</td>
+              <td><span class="badge badge-success">Active</span></td>
+              <td>Jul 28, 2025</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>

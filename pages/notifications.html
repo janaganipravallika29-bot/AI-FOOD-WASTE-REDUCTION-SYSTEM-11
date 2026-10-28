@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Main Menu</div>
+    <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+    <a href="foodentry.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
+    <a href="prediction.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
+    <a href="recommendations.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
+    <div class="nav-section-title">Tracking</div>
+    <a href="waste_tracking.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span> Waste Tracking</a>
+    <a href="reports.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> Reports</a>
+    <a href="notifications.html"   class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
+    <div class="nav-section-title">Account</div>
+    <a href="profile.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">PJ</div>
+      <div><div class="user-name" id="userName">Pravallika Janagani</div><div class="user-role">Regular User</div></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left"><h1>Notifications Center</h1><p>Alerts, expiry reminders, and system insights</p></div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-avatar" id="topUserAvatar">PJ</div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div style="max-width:800px;margin:0 auto;">
+      <div class="page-header">
+        <div>
+          <h2><i class="fa-solid fa-bell" style="color:var(--primary);margin-right:10px;"></i>Your Alerts</h2>
+          <p>Stay informed about approaching expiries and AI predictions.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="markAllRead()"><i class="fa-solid fa-check-double"></i> Mark All as Read</button>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div id="notifList">
+          <div class="notif-item unread">
+            <div class="notif-icon" style="background:rgba(239,68,68,0.15);color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div style="flex:1;">
+              <div class="notif-title">Milk Expires Tomorrow!</div>
+              <div class="notif-msg">Your 2L Milk item is set to expire on Aug 13. Please consume or freeze it soon.</div>
+              <div class="notif-time">2 hours ago</div>
+            </div>
+            <span class="badge badge-danger">High Alert</span>
+          </div>
+
+          <div class="notif-item unread">
+            <div class="notif-icon" style="background:rgba(245,158,11,0.15);color:var(--warning);"><i class="fa-solid fa-clock"></i></div>
+            <div style="flex:1;">
+              <div class="notif-title">Tomatoes Approaching Expiry</div>
+              <div class="notif-msg">3 food items are approaching their expiry dates within the next 3 days.</div>
+              <div class="notif-time">5 hours ago</div>
+            </div>
+            <span class="badge badge-warning">Expiry</span>
+          </div>
+
+          <div class="notif-item unread">
+            <div class="notif-icon" style="background:rgba(34,197,94,0.15);color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
+            <div style="flex:1;">
+              <div class="notif-title">Great Job! Waste Reduced by 12%</div>
+              <div class="notif-msg">Your waste reduction score improved from 72 to 78 this week. Keep it up!</div>
+              <div class="notif-time">1 day ago</div>
+            </div>
+            <span class="badge badge-success">Milestone</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+const defaultUser = { name: "Pravallika Janagani", email: "pravallikajanagani4@gmail.com" };
+const user = JSON.parse(localStorage.getItem('fw_user') || JSON.stringify(defaultUser));
+const initials = (user.name || 'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+document.getElementById('userName').textContent = user.name;
+document.getElementById('userAvatar').textContent = initials;
+document.getElementById('topUserAvatar').textContent = initials;
+
+function markAllRead() {
+  document.querySelectorAll('.notif-item').forEach(el => el.classList.remove('unread'));
+  showToast('All notifications marked as read.', 'info');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>

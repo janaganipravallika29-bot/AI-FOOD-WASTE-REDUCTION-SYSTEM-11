@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Food — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .form-section-title {
+      font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--accent); margin-bottom: 16px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;
+    }
+    .image-upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+    }
+    .image-upload-zone:hover { border-color: var(--primary-light); background: var(--glass-light); }
+    .image-upload-zone.has-image { border-style: solid; border-color: var(--primary); }
+    .image-upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .image-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--radius-sm); display: none; }
+    .upload-placeholder i { font-size: 2.5rem; color: var(--text-dim); margin-bottom: 10px; }
+    .upload-placeholder p  { font-size: 0.85rem; color: var(--text-muted); }
+    .form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .save-bar {
+      position: sticky; bottom: 0;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      padding: 16px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Main Menu</div>
+    <a href="dashboard.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+    <a href="foodentry.html"      class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="food_history.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
+    <a href="prediction.html"     class="nav-item"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
+    <a href="recommendations.html"class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
+    <div class="nav-section-title">Tracking</div>
+    <a href="waste_tracking.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span> Waste Tracking</a>
+    <a href="reports.html"        class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> Reports</a>
+    <a href="notifications.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
+    <div class="nav-section-title">Account</div>
+    <a href="profile.html"        class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="admin.html"          class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">U</div>
+      <div><div class="user-name" id="userName">User</div><div class="user-role">Regular User</div></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left">
+        <h1>Add Food Item</h1>
+        <p>Log a new food item to track expiry and get AI predictions</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
+      <div class="user-avatar" id="topUserAvatar">U</div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="page-header">
+      <div>
+        <h2><i class="fa-solid fa-plus-circle" style="color:var(--primary);margin-right:10px;"></i>New Food Entry</h2>
+        <p>Fill in the details about your food item. Fields marked * are required.</p>
+      </div>
+      <a href="food_history.html" class="btn btn-outline btn-sm"><i class="fa-solid fa-clock-rotate-left"></i> View History</a>
+    </div>
+
+    <div id="formAlert" class="alert alert-danger hidden"><i class="fa-solid fa-triangle-exclamation"></i><span id="formAlertMsg"></span></div>
+    <div id="formSuccess" class="alert alert-success hidden"><i class="fa-solid fa-check-circle"></i>Food item saved successfully! <a href="prediction.html" style="color:inherit;font-weight:700;">Get AI Prediction →</a></div>
+
+    <form id="foodForm" novalidate>
+
+      <!-- Basic Info -->
+      <div class="form-card">
+        <div class="form-section-title"><i class="fa-solid fa-info-circle"></i> Basic Information</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Food Name *</label>
+            <div class="input-group">
+              <i class="fa-solid fa-bowl-food input-icon"></i>
+              <input type="text" id="foodName" class="form-control" placeholder="e.g., Fresh Milk, Brown Rice..." required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category *</label>
+            <div class="input-group">
+              <i class="fa-solid fa-tags input-icon"></i>
+              <select id="foodCategory" class="form-control" required style="padding-left:40px;">
+                <option value="">Select Category</option>
+                <option value="fruits">🍎 Fruits</option>
+                <option value="vegetables">🥦 Vegetables</option>
+                <option value="dairy">🥛 Dairy</option>
+                <option value="grains">🌾 Grains</option>
+                <option value="meat">🥩 Meat</option>
+                <option value="bakery">🍞 Bakery</option>
+                <option value="beverages">🧃 Beverages</option>
+                <option value="packaged">📦 Packaged Food</option>
+                <option value="other">🍽️ Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">Quantity *</label>
+            <input type="number" id="foodQty" class="form-control" placeholder="e.g., 2" min="0" step="0.1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unit *</label>
+            <select id="foodUnit" class="form-control" required>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="L">L</option>
+              <option value="ml">ml</option>
+              <option value="pcs">pcs</option>
+              <option value="loaf">loaf</option>
+              <option value="pack">pack</option>
+              <option value="dozen">dozen</option>
+              <option value="other">other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Storage Type *</label>
+            <div class="input-group">
+              <i class="fa-solid fa-snowflake input-icon"></i>
+              <select id="storageType" class="form-control" style="padding-left:40px;" required>
+                <option value="">Select Storage</option>
+                <option value="refrigerator">❄️ Refrigerator</option>
+                <option value="freezer">🧊 Freezer</option>
+                <option value="pantry">🏠 Pantry</option>
+                <option value="countertop">🍽️ Countertop</option>
+                <option value="cellar">🏚️ Cellar</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dates -->
+      <div class="form-card">
+        <div class="form-section-title"><i class="fa-solid fa-calendar"></i> Dates & Status</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Purchase Date *</label>
+            <div class="input-group">
+              <i class="fa-solid fa-calendar-days input-icon"></i>
+              <input type="date" id="purchaseDate" class="form-control" style="padding-left:40px;" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Expiry Date *</label>
+            <div class="input-group">
+              <i class="fa-solid fa-calendar-xmark input-icon"></i>
+              <input type="date" id="expiryDate" class="form-control" style="padding-left:40px;" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Consumption Status</label>
+            <select id="consumptionStatus" class="form-control">
+              <option value="fresh">Fresh</option>
+              <option value="consuming">Being Consumed</option>
+              <option value="consumed">Fully Consumed</option>
+              <option value="wasted">Wasted</option>
+            </select>
+          </div>
+          <div id="expiryInfo" style="display:flex;align-items:center;padding:12px 16px;background:var(--surface);border-radius:var(--radius-md);font-size:0.88rem;color:var(--text-muted);">
+            <i class="fa-solid fa-clock-rotate-left" style="margin-right:8px;color:var(--primary);"></i>
+            <span id="expiryDaysText">Select both dates to see days remaining</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Waste Info -->
+      <div class="form-card">
+        <div class="form-section-title"><i class="fa-solid fa-trash-can"></i> Waste Information (Optional)</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Wasted Quantity</label>
+            <input type="number" id="wastedQty" class="form-control" placeholder="Amount wasted" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Waste Reason</label>
+            <select id="wasteReason" class="form-control">
+              <option value="">Not Wasted</option>
+              <option value="expired">Expired</option>
+              <option value="spoiled">Spoiled</option>
+              <option value="over_purchased">Over-purchased</option>
+              <option value="overcooked">Overcooked</option>
+              <option value="leftovers">Leftovers</option>
+              <option value="poor_storage">Poor Storage</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea id="foodNotes" class="form-control" rows="3" placeholder="Any additional notes about this food item..."></textarea>
+        </div>
+      </div>
+
+      <!-- Image Upload & AI Vision Recognition -->
+      <div class="form-card">
+        <div class="form-section-title"><i class="fa-solid fa-camera"></i> Food Image & AI Recognition</div>
+        <div class="image-upload-zone" id="uploadZone">
+          <input type="file" id="foodImage" accept="image/*" onchange="previewAndScanImage(this)">
+          <div class="upload-placeholder" id="uploadPlaceholder">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <p>Click or drag & drop an image of your food</p>
+            <p style="font-size:0.75rem;margin-top:4px;color:var(--text-dim);">AI will automatically identify the food item · JPG, PNG, WebP</p>
+          </div>
+          <img id="imagePreview" class="image-preview" alt="Food preview">
+        </div>
+
+        <!-- AI Image Recognition Result Banner -->
+        <div id="aiVisionCard" class="hidden" style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span id="aiVisionEmoji" style="font-size:2rem;">🌿</span>
+              <div>
+                <div style="font-size:0.78rem;font-weight:700;color:var(--primary-light);text-transform:uppercase;letter-spacing:0.5px;">AI Vision Scanner Detected</div>
+                <div style="font-weight:700;font-size:1rem;" id="aiVisionName">Scanning...</div>
+                <div style="font-size:0.78rem;color:var(--text-muted);" id="aiVisionDetails">Analyzing image attributes...</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" id="applyAiBtn" onclick="applyAiDetection()" style="border-color:var(--primary);color:var(--accent);">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fill Form from Image
+            </button>
+          </div>
+
+          <!-- Mismatch Alert -->
+          <div id="aiMismatchAlert" class="alert alert-warning hidden" style="margin-top:12px;margin-bottom:0;padding:10px 14px;font-size:0.85rem;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="aiMismatchText">Image and typed food name might differ.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Bar -->
+      <div class="save-bar">
+        <div>
+          <div style="font-size:0.85rem;color:var(--text-muted);">
+            <i class="fa-solid fa-robot" style="color:var(--primary);margin-right:5px;"></i>
+            After saving, you can get an AI waste risk prediction.
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;">
+          <button type="button" class="btn btn-outline" onclick="resetForm()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">
+            <i class="fa-solid fa-floppy-disk"></i> Save Food Item
+          </button>
+          <button type="button" class="btn btn-primary" id="savePredictBtn" onclick="saveAndPredict()" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);box-shadow:0 4px 20px rgba(139,92,246,0.4);">
+            <i class="fa-solid fa-brain"></i> Save & Predict
+          </button>
+        </div>
+      </div>
+    </form>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+  // User info
+  const user = JSON.parse(localStorage.getItem('fw_user') || '{"name":"Pravallika Janagani"}');
+  const initials = (user.name||'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('userName').textContent = user.name || 'User';
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('topUserAvatar').textContent = initials;
+
+  // Set today as default purchase date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('purchaseDate').value = today;
+
+  // Check if edit mode (?edit=ID)
+  const urlParams = new URLSearchParams(window.location.search);
+  const editId = urlParams.get('edit');
+  let currentEditingId = null;
+
+  if (editId) {
+    const existing = FoodDB.getFoodById(editId);
+    if (existing) {
+      currentEditingId = existing.id;
+      document.getElementById('foodName').value = existing.food_name || '';
+      document.getElementById('foodCategory').value = existing.category || '';
+      document.getElementById('foodQty').value = existing.quantity || '';
+      document.getElementById('foodUnit').value = existing.unit || 'kg';
+      document.getElementById('storageType').value = existing.storage_type || '';
+      document.getElementById('purchaseDate').value = existing.purchase_date || today;
+      document.getElementById('expiryDate').value = existing.expiry_date || '';
+      document.getElementById('consumptionStatus').value = existing.status || 'fresh';
+      document.getElementById('wastedQty').value = existing.wasted_qty || '';
+      document.getElementById('wasteReason').value = existing.waste_reason || '';
+      document.getElementById('foodNotes').value = existing.notes || '';
+      document.getElementById('saveBtn').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Food Item';
+    }
+  }
+
+  // Calculate days remaining
+  function calcDays() {
+    const p = document.getElementById('purchaseDate').value;
+    const e = document.getElementById('expiryDate').value;
+    if (!e) return;
+    const days = Math.ceil((new Date(e) - new Date()) / 86400000);
+    const el = document.getElementById('expiryDaysText');
+    if (days < 0) {
+      el.textContent = '⚠️ Already expired!';
+      el.style.color = 'var(--danger)';
+    } else if (days <= 3) {
+      el.textContent = `⏰ Expires in ${days} day${days!==1?'s':''} — Near Expiry`;
+      el.style.color = 'var(--warning)';
+    } else {
+      el.textContent = `✅ ${days} days remaining — Fresh`;
+      el.style.color = 'var(--success)';
+    }
+  }
+  document.getElementById('expiryDate').addEventListener('change', calcDays);
+  document.getElementById('purchaseDate').addEventListener('change', calcDays);
+
+  // Image preview & AI Vision Recognition
+  let uploadedImageData = null;
+  let detectedAiFood = null;
+
+  function previewAndScanImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Show image preview
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedImageData = e.target.result;
+      const img = document.getElementById('imagePreview');
+      img.src = uploadedImageData;
+      img.style.display = 'block';
+      document.getElementById('uploadPlaceholder').style.display = 'none';
+      document.getElementById('uploadZone').classList.add('has-image');
+    };
+    reader.readAsDataURL(file);
+
+    // Run AI Food Vision Scanner
+    const visionCard = document.getElementById('aiVisionCard');
+    visionCard.classList.remove('hidden');
+    document.getElementById('aiVisionName').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i> AI analyzing food image...';
+    document.getElementById('aiVisionDetails').textContent = 'Extracting color spectrum, visual patterns and category...';
+
+    FoodVisionEngine.detectFromImage(file, (detected, dataUrl) => {
+      detectedAiFood = detected;
+      if (detected) {
+        document.getElementById('aiVisionEmoji').textContent = detected.emoji || '🍽️';
+        document.getElementById('aiVisionName').textContent = `${detected.canonical || detected.id || 'Food Item'} (${detected.confidence}% Confidence)`;
+        document.getElementById('aiVisionDetails').textContent = `Category: ${(detected.category||'General').toUpperCase()} · Recommended Storage: ${(detected.defaultStorage||'Refrigerator').toUpperCase()}`;
+        
+        checkImageConsistency();
+        showToast(`AI Vision detected: ${detected.canonical || 'Food item'}!`, 'info');
+      }
+    });
+  }
+
+  function applyAiDetection() {
+    if (!detectedAiFood) return;
+    document.getElementById('foodName').value = detectedAiFood.canonical || detectedAiFood.id;
+    if (detectedAiFood.category) {
+      document.getElementById('foodCategory').value = detectedAiFood.category;
+    }
+    if (detectedAiFood.defaultStorage) {
+      document.getElementById('storageType').value = detectedAiFood.defaultStorage;
+    }
+    
+    // Auto-set suggested expiry based on food shelf-life
+    const daysOffset = detectedAiFood.spoilageRate === 'critical' ? 2 :
+                       detectedAiFood.spoilageRate === 'very_fast' ? 3 :
+                       detectedAiFood.spoilageRate === 'fast' ? 5 : 14;
+    const expDate = new Date(Date.now() + daysOffset * 86400000).toISOString().split('T')[0];
+    document.getElementById('expiryDate').value = expDate;
+    calcDays();
+
+    document.getElementById('aiMismatchAlert').classList.add('hidden');
+    showToast(`Form filled with AI-detected ${detectedAiFood.canonical} details!`, 'success');
+  }
+
+  function checkImageConsistency() {
+    const enteredName = document.getElementById('foodName').value.trim().toLowerCase();
+    const alertEl = document.getElementById('aiMismatchAlert');
+    const textEl = document.getElementById('aiMismatchText');
+
+    if (detectedAiFood && enteredName) {
+      const match = FoodKnowledge.matchFood(enteredName);
+      const enteredCanonical = match ? match.canonical : enteredName;
+      const detectedCanonical = detectedAiFood.canonical || '';
+
+      if (detectedCanonical && !detectedAiFood.aliases?.some(a => enteredName.includes(a)) && !enteredName.includes(detectedCanonical.toLowerCase())) {
+        textEl.innerHTML = `<strong>Image Mismatch:</strong> Your image looks like <strong>${detectedCanonical}</strong> (${detectedAiFood.category}), but you entered <strong>"${document.getElementById('foodName').value}"</strong>. You can click <em>"Auto-Fill Form from Image"</em> above or keep your custom entry.`;
+        alertEl.classList.remove('hidden');
+        return;
+      }
+    }
+    alertEl.classList.add('hidden');
+  }
+
+  document.getElementById('foodName').addEventListener('input', checkImageConsistency);
+
+  // Collect form data
+  function collectData() {
+    return {
+      id:           currentEditingId || undefined,
+      food_name:    document.getElementById('foodName').value.trim(),
+      category:     document.getElementById('foodCategory').value,
+      quantity:     parseFloat(document.getElementById('foodQty').value) || 0,
+      unit:         document.getElementById('foodUnit').value,
+      storage_type: document.getElementById('storageType').value,
+      purchase_date:document.getElementById('purchaseDate').value,
+      expiry_date:  document.getElementById('expiryDate').value,
+      status:       document.getElementById('consumptionStatus').value,
+      wasted_qty:   parseFloat(document.getElementById('wastedQty').value) || 0,
+      waste_reason: document.getElementById('wasteReason').value,
+      notes:        document.getElementById('foodNotes').value.trim(),
+      image:        uploadedImageData || undefined,
+      ai_detected:  detectedAiFood || undefined
+    };
+  }
+
+  // Validate
+  function validate(d) {
+    if (!d.food_name)    return 'Food name is required.';
+    if (!d.category)     return 'Please select a category.';
+    if (!d.quantity || d.quantity <= 0) return 'Quantity must be greater than 0.';
+    if (!d.storage_type) return 'Please select a storage type.';
+    if (!d.purchase_date)return 'Purchase date is required.';
+    if (!d.expiry_date)  return 'Expiry date is required.';
+    if (new Date(d.expiry_date) < new Date(d.purchase_date)) return 'Expiry date cannot be before purchase date.';
+    return null;
+  }
+
+  // Form submit handler
+  document.getElementById('foodForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await submitForm(false);
+  });
+
+  async function saveAndPredict() {
+    await submitForm(true);
+  }
+
+  async function submitForm(redirect) {
+    const d = collectData();
+    const err = validate(d);
+    if (err) {
+      document.getElementById('formAlertMsg').textContent = err;
+      document.getElementById('formAlert').classList.remove('hidden');
+      showToast(err, 'error');
+      return false;
+    }
+    document.getElementById('formAlert').classList.add('hidden');
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+
+    // Save to FoodDB
+    const savedFood = FoodDB.saveFood(d);
+
+    // Also attempt backend API if running
+    try {
+      await fetch('/api/foods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(savedFood)
+      });
+    } catch (e) {
+      // Backend not running, local storage used seamlessly
+    }
+
+    document.getElementById('formSuccess').classList.remove('hidden');
+    showToast(`Food item "${savedFood.food_name}" saved successfully!`, 'success');
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Food Item';
+
+    if (redirect) {
+      setTimeout(() => {
+        window.location.href = `prediction.html?id=${savedFood.id}`;
+      }, 500);
+    } else {
+      setTimeout(() => {
+        resetForm();
+      }, 1000);
+    }
+    return true;
+  }
+
+  function resetForm() {
+    document.getElementById('foodForm').reset();
+    document.getElementById('purchaseDate').value = today;
+    uploadedImageData = null;
+    detectedAiFood = null;
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('uploadPlaceholder').style.display = 'block';
+    document.getElementById('uploadZone').classList.remove('has-image');
+    document.getElementById('aiVisionCard').classList.add('hidden');
+    document.getElementById('expiryDaysText').textContent = 'Select both dates to see days remaining';
+    document.getElementById('formSuccess').classList.add('hidden');
+    document.getElementById('formAlert').classList.add('hidden');
+    currentEditingId = null;
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  }
+</script>
+</body>
+</html>

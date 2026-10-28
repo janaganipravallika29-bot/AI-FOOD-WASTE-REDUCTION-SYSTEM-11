@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile — FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Main Menu</div>
+    <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+    <a href="foodentry.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
+    <a href="prediction.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
+    <a href="recommendations.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
+    <div class="nav-section-title">Tracking</div>
+    <a href="waste_tracking.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span> Waste Tracking</a>
+    <a href="reports.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> Reports</a>
+    <a href="notifications.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
+    <div class="nav-section-title">Account</div>
+    <a href="profile.html"         class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">PJ</div>
+      <div><div class="user-name" id="userName">Pravallika Janagani</div><div class="user-role">Regular User</div></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left"><h1>User Profile</h1><p>Account settings and profile preferences</p></div>
+    </div>
+    <div class="topbar-right">
+      <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
+      <div class="user-avatar" id="topUserAvatar">PJ</div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div style="max-width:800px;margin:0 auto;">
+      <!-- Profile Header Card -->
+      <div class="card" style="margin-bottom:24px;display:flex;align-items:center;gap:24px;padding:32px;">
+        <div class="user-avatar" style="width:80px;height:80px;font-size:2rem;" id="bigAvatar">PJ</div>
+        <div style="flex:1;">
+          <h2 id="profName">Pravallika Janagani</h2>
+          <p style="color:var(--text-muted);font-size:0.9rem;" id="profEmail">pravallikajanagani4@gmail.com</p>
+          <div style="display:flex;gap:10px;margin-top:10px;">
+            <span class="badge badge-success">Active Member</span>
+            <span class="badge badge-info">Food Saver Tier 1</span>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="logout()"><i class="fa-solid fa-right-to-bracket"></i> Sign Out</button>
+      </div>
+
+      <!-- Account Edit Form -->
+      <div class="card">
+        <h3 style="margin-bottom:20px;"><i class="fa-solid fa-user-gear" style="color:var(--primary);margin-right:8px;"></i>Personal Information</h3>
+        <form id="profileForm" onsubmit="saveProfile(event)">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="editName" class="form-control" value="Pravallika Janagani" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="editEmail" class="form-control" value="pravallikajanagani4@gmail.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Change Password</label>
+            <input type="password" id="editPwd" class="form-control" placeholder="Leave blank to keep current password">
+          </div>
+          <button type="submit" class="btn btn-primary" style="padding:12px 24px;margin-top:10px;">
+            <i class="fa-solid fa-floppy-disk"></i> Save Profile Changes
+          </button>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+const defaultUser = { name: "Pravallika Janagani", email: "pravallikajanagani4@gmail.com" };
+const user = JSON.parse(localStorage.getItem('fw_user') || JSON.stringify(defaultUser));
+const initials = (user.name || 'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+document.getElementById('userName').textContent = user.name;
+document.getElementById('userAvatar').textContent = initials;
+document.getElementById('topUserAvatar').textContent = initials;
+document.getElementById('bigAvatar').textContent = initials;
+
+document.getElementById('profName').textContent = user.name;
+document.getElementById('profEmail').textContent = user.email;
+document.getElementById('editName').value = user.name;
+document.getElementById('editEmail').value = user.email;
+
+function saveProfile(e) {
+  e.preventDefault();
+  const name = document.getElementById('editName').value;
+  const email = document.getElementById('editEmail').value;
+  const newUser = { ...user, name, email };
+  localStorage.setItem('fw_user', JSON.stringify(newUser));
+  showToast('Profile updated successfully!', 'success');
+  setTimeout(() => location.reload(), 1000);
+}
+
+function logout() {
+  localStorage.removeItem('fw_user');
+  localStorage.removeItem('fw_token');
+  showToast('Logged out.', 'info');
+  setTimeout(() => window.location.href = 'login.html', 800);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>
