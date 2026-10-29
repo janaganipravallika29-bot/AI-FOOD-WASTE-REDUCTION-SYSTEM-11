@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Login to FoodWise AI — Your AI-powered food waste reduction dashboard.">
-  <title>Login — FoodWise AI</title>
+  <meta name="description" content="Login to FoodWise AI - Your AI-powered food waste reduction dashboard.">
+  <title>Login - FoodWise AI</title>
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
@@ -29,10 +29,10 @@
 <div class="auth-left">
   <div style="position:relative;z-index:1;width:100%;max-width:380px;text-align:center;">
     <div class="nav-logo" style="justify-content:center;margin-bottom:32px;">
-      <div class="nav-logo-icon" style="width:48px;height:48px;font-size:1.5rem;">🌿</div>
+      <div class="nav-logo-icon" style="width:48px;height:48px;font-size:1.5rem;">🌱</div>
       <span style="font-family:'Poppins',sans-serif;font-weight:700;font-size:1.2rem;">FoodWise <span class="text-gradient">AI</span></span>
     </div>
-    <div class="auth-hero-icon">🍃</div>
+    <div class="auth-hero-icon">👋</div>
     <h2>Welcome Back!</h2>
     <p>Sign in to access your food waste dashboard, track your progress, and continue reducing waste with AI-powered insights.</p>
     <div class="auth-features">
@@ -60,7 +60,7 @@
 <div class="auth-right">
   <div class="auth-form-box">
     <div class="logo-row">
-      <div class="nav-logo-icon">🌿</div>
+      <div class="nav-logo-icon">🌱</div>
       <div>
         <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:0.95rem;">FoodWise AI</div>
         <div style="font-size:0.72rem;color:var(--text-muted);">AI-Powered Food Management</div>
@@ -74,6 +74,12 @@
     <div id="loginAlert" class="alert alert-danger hidden" role="alert">
       <i class="fa-solid fa-circle-exclamation"></i>
       <span id="loginAlertMsg">Invalid email or password.</span>
+    </div>
+
+    <!-- Success placeholder -->
+    <div id="loginSuccess" class="alert alert-success hidden" role="alert">
+      <i class="fa-solid fa-circle-check"></i>
+      <span id="loginSuccessMsg">Authentication successful! Redirecting...</span>
     </div>
 
     <form id="loginForm" novalidate>
@@ -98,32 +104,32 @@
         <div class="text-sm text-muted mt-2" id="passError" style="color:var(--danger);display:none;">Password is required.</div>
       </div>
 
-      <div class="flex items-center justify-between mb-4" style="margin-bottom:20px;">
+      <div class="flex items-center justify-between mb-4" style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
         <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-muted);cursor:pointer;">
-          <input type="checkbox" id="rememberMe" style="accent-color:var(--primary);width:16px;height:16px;">
+          <input type="checkbox" id="rememberMe" checked style="accent-color:var(--primary);width:16px;height:16px;">
           Remember me
         </label>
-        <a href="#" style="font-size:0.85rem;color:var(--accent);">Forgot password?</a>
+        <a href="forgot_password.html" style="font-size:0.85rem;color:var(--accent);text-decoration:none;">Forgot password?</a>
       </div>
 
-      <button type="submit" class="btn btn-primary w-full" id="loginBtn" style="justify-content:center;padding:14px;">
+      <button type="submit" class="btn btn-primary w-full" id="loginBtn" style="justify-content:center;padding:14px;width:100%;">
         <i class="fa-solid fa-right-to-bracket"></i>
         <span id="loginBtnText">Sign In</span>
       </button>
     </form>
 
-    <div class="divider"><span>or continue with demo</span></div>
+    <div class="divider"><span>or explore the platform</span></div>
 
-    <button class="btn btn-outline w-full" id="demoBtn" style="justify-content:center;padding:12px;" onclick="fillDemo()">
+    <button class="btn btn-outline w-full" id="demoBtn" style="justify-content:center;padding:12px;width:100%;" onclick="useDemoAccount()">
       <i class="fa-solid fa-flask"></i> Use Demo Account
     </button>
 
     <p style="text-align:center;margin-top:24px;font-size:0.88rem;color:var(--text-muted);">
       Don't have an account?
-      <a href="signup.html" style="color:var(--accent);font-weight:600;"> Create Account</a>
+      <a href="signup.html" style="color:var(--accent);font-weight:600;text-decoration:none;"> Create Account</a>
     </p>
     <p style="text-align:center;margin-top:10px;font-size:0.83rem;color:var(--text-dim);">
-      <a href="admin.html" style="color:var(--text-dim);">
+      <a href="admin_login.html" style="color:var(--text-dim);text-decoration:none;">
         <i class="fa-solid fa-shield-halved" style="margin-right:4px;"></i>Admin Login
       </a>
     </p>
@@ -133,6 +139,27 @@
 <div id="toast-container"></div>
 <script src="../script.js"></script>
 <script>
+  // Check if user is already logged in, redirect to dashboard if so
+  (async function checkExistingSession() {
+    try {
+      const res = await fetch('/api/me', {
+        headers: {
+          'Authorization': 'Bearer ' + (localStorage.getItem('fw_token') || '')
+        },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          localStorage.setItem('fw_user', JSON.stringify(data.user));
+          window.location.replace('dashboard.html');
+        }
+      }
+    } catch (e) {
+      // Not authenticated, stay on login page
+    }
+  })();
+
   // Toggle password visibility
   document.getElementById('togglePass').addEventListener('click', () => {
     const input = document.getElementById('loginPassword');
@@ -146,76 +173,137 @@
     }
   });
 
-  // Fill demo credentials
-  function fillDemo() {
-    document.getElementById('loginEmail').value    = 'pravallikajanagani4@gmail.com';
-    document.getElementById('loginPassword').value = '21S29P20P26B$#@';
-    showToast('Credentials auto-filled! Click Sign In.', 'info');
+  // Helper for alert message
+  function showAlert(msg) {
+    const alertBox = document.getElementById('loginAlert');
+    document.getElementById('loginAlertMsg').textContent = msg;
+    alertBox.classList.remove('hidden');
+    document.getElementById('loginSuccess').classList.add('hidden');
+  }
+
+  function hideAlert() {
+    document.getElementById('loginAlert').classList.add('hidden');
+  }
+
+  // Handle Demo Account Login
+  async function useDemoAccount() {
+    const demoBtn = document.getElementById('demoBtn');
+    demoBtn.disabled = true;
+    demoBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Entering demo...';
+    hideAlert();
+
+    try {
+      const res = await fetch('/api/demo-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        localStorage.setItem('fw_token', data.token);
+        localStorage.setItem('fw_user', JSON.stringify(data.user));
+        document.getElementById('loginSuccess').classList.remove('hidden');
+        document.getElementById('loginSuccessMsg').textContent = 'Demo account ready! Redirecting...';
+        showToast('Welcome to FoodWise AI Demo!', 'success');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 800);
+      } else {
+        showAlert(data.message || 'Demo account is currently unavailable.');
+        demoBtn.disabled = false;
+        demoBtn.innerHTML = '<i class="fa-solid fa-flask"></i> Use Demo Account';
+      }
+    } catch (err) {
+      console.error('Demo login error:', err);
+      const isLiveServer = window.location.port !== '5000' && window.location.port !== '';
+      if (isLiveServer) {
+        showAlert('Backend not detected at http://127.0.0.1:5000. Start it in terminal via: python app.py (or open http://127.0.0.1:5000/pages/login.html).');
+      } else {
+        showAlert('Unable to connect to authentication server. Please ensure the backend is running.');
+      }
+      demoBtn.disabled = false;
+      demoBtn.innerHTML = '<i class="fa-solid fa-flask"></i> Use Demo Account';
+    }
   }
 
   // Form submission
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email    = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
+    hideAlert();
+
+    const emailInput = document.getElementById('loginEmail');
+    const passInput  = document.getElementById('loginPassword');
+    const rememberMe = document.getElementById('rememberMe').checked;
+
+    const email    = emailInput.value.trim();
+    const password = passInput.value;
     let valid = true;
 
-    // Basic validation
+    // Email validation
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      document.getElementById('emailError').style.display = 'block'; valid = false;
-    } else { document.getElementById('emailError').style.display = 'none'; }
+      document.getElementById('emailError').style.display = 'block';
+      valid = false;
+    } else {
+      document.getElementById('emailError').style.display = 'none';
+    }
 
+    // Password validation
     if (!password) {
-      document.getElementById('passError').style.display = 'block'; valid = false;
-    } else { document.getElementById('passError').style.display = 'none'; }
+      document.getElementById('passError').style.display = 'block';
+      valid = false;
+    } else {
+      document.getElementById('passError').style.display = 'none';
+    }
 
     if (!valid) return;
 
-    // Show loading
-    const btn     = document.getElementById('loginBtn');
-    const btnText = document.getElementById('loginBtnText');
-    btn.disabled  = true;
-    btnText.textContent = 'Signing in...';
+    // Loading state
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Signing in...';
 
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        credentials: 'include',
+        body: JSON.stringify({ email, password, remember: rememberMe })
       });
+
       const data = await res.json();
+
       if (res.ok && data.success) {
-        localStorage.setItem('fw_token', data.token || '');
-        localStorage.setItem('fw_user', JSON.stringify(data.user || { name: 'Pravallika Janagani', email }));
-        showToast('Login successful! Redirecting...', 'success');
-        setTimeout(() => window.location.href = 'dashboard.html', 900);
+        localStorage.setItem('fw_token', data.token);
+        localStorage.setItem('fw_user', JSON.stringify(data.user));
+
+        document.getElementById('loginSuccess').classList.remove('hidden');
+        document.getElementById('loginSuccessMsg').textContent = `Welcome back, ${data.user.name}! Redirecting...`;
+        showToast('Login successful!', 'success');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetPage = urlParams.get('redirect') || 'dashboard.html';
+
+        setTimeout(() => {
+          window.location.href = targetPage;
+        }, 800);
       } else {
         showAlert(data.message || 'Invalid email or password.');
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
       }
-    } catch {
-      // Offline/demo mode — allow login with user credentials & demo account
-      if ((email === 'pravallikajanagani4@gmail.com' && password === '21S29P20P26B$#@') ||
-          (email === 'demo@foodwise.ai' && password === 'Demo@1234')) {
-        const userName = email.includes('pravallika') ? 'Pravallika Janagani' : 'Demo User';
-        localStorage.setItem('fw_user', JSON.stringify({ name: userName, email, role: 'user' }));
-        showToast(`Welcome back, ${userName}!`, 'success');
-        setTimeout(() => window.location.href = 'dashboard.html', 900);
+    } catch (err) {
+      console.error('Login request error:', err);
+      const isLiveServer = window.location.port !== '5000' && window.location.port !== '';
+      if (isLiveServer) {
+        showAlert('Backend not detected at http://127.0.0.1:5000. Start it in terminal via: python app.py (or open http://127.0.0.1:5000/pages/login.html).');
       } else {
-        showAlert('Could not connect to server. Check your credentials or click "Use Demo Account".');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+        showAlert('Could not reach the server. Please check your network connection.');
       }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
     }
   });
-
-  function showAlert(msg) {
-    const el = document.getElementById('loginAlert');
-    document.getElementById('loginAlertMsg').textContent = msg;
-    el.classList.remove('hidden');
-  }
 </script>
 </body>
 </html>

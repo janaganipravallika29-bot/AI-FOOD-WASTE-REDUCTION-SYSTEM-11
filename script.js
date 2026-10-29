@@ -1,4 +1,38 @@
-console.log("AI-Based Food Waste Reduction System Loaded Successfully");
+console.log("FoodWise AI - AI-Based Food Waste Reduction System Loaded");
+
+// ===================================
+// DYNAMIC API ENDPOINT ROUTING
+// ===================================
+
+/**
+ * Resolves the API base URL based on the current execution environment.
+ * If running via VS Code Live Server (port 5500, 5501, 3000, 8080) or file://,
+ * routes API calls to the local Flask backend on port 5000.
+ * In production (Vercel) or when served directly by Flask, uses relative endpoints.
+ */
+function apiUrl(endpoint) {
+  let path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+  const port = window.location.port;
+  const isLocalDevStaticServer = 
+    (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') &&
+    port !== '5000' && port !== '';
+  const isFileOrigin = window.location.protocol === 'file:';
+
+  if (isLocalDevStaticServer || isFileOrigin) {
+    return 'http://127.0.0.1:5000' + path;
+  }
+  return path;
+}
+window.apiUrl = apiUrl;
+
+// Intercept window.fetch for /api/* calls so all pages resolve the correct backend seamlessly
+const _fwOriginalFetch = window.fetch;
+window.fetch = function(resource, init) {
+  if (typeof resource === 'string' && resource.startsWith('/api/')) {
+    resource = apiUrl(resource);
+  }
+  return _fwOriginalFetch(resource, init);
+};
 
 // ===================================
 // TOAST NOTIFICATION SYSTEM
@@ -32,11 +66,182 @@ function showToast(message, type = 'info', duration = 3500) {
 }
 
 // ===================================
+// AUTHENTICATION & SESSION MANAGEMENT
+// ===================================
+
+function getAuthToken() {
+  return localStorage.getItem('fw_token') || '';
+}
+
+function getCurrentUser() {
+  const raw = localStorage.getItem('fw_user');
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
+
+function setAuthSession(token, user) {
+  if (token) localStorage.setItem('fw_token', token);
+  if (user) localStorage.setItem('fw_user', JSON.stringify(user));
+}
+
+function clearAuthSession() {
+  localStorage.removeItem('fw_token');
+  localStorage.removeItem('fw_user');
+}
+
+/**
+ * Universal Route Guard
+ * Enforces session authentication and role requirements on protected pages.
+ */
+async function checkAuth(options = {}) {
+  const requireAdmin = options.requireAdmin || false;
+  const redirectToLogin = options.redirectToLogin !== false;
+  const token = getAuthToken();
+
+  try {
+    const res = await fetch('/api/me', {
+      headers: {
+        'Authorization': 'Bearer ' + token
+      },
+      credentials: 'include'
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.user) {
+        setAuthSession(token, data.user);
+        syncUserProfile();
+
+        if (requireAdmin && data.user.role !== 'admin') {
+          showToast('Access denied: Administrator privileges required.', 'error');
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 800);
+          return false;
+        }
+
+        if (data.user.role === 'demo') {
+          showDemoBanner();
+        }
+
+        return true;
+      }
+    }
+  } catch (err) {
+    console.warn("Session verification network notice:", err);
+  }
+
+  // If server verification returned unauthorized or server is offline with no active user
+  const localUser = getCurrentUser();
+  if (localUser && localUser.email) {
+    syncUserProfile();
+    if (requireAdmin && localUser.role !== 'admin') {
+      if (redirectToLogin) window.location.href = 'admin_login.html';
+      return false;
+    }
+    if (localUser.role === 'demo') showDemoBanner();
+    return true;
+  }
+
+  // If not authenticated, redirect to login
+  if (redirectToLogin) {
+    const isPagesDir = window.location.pathname.includes('/pages/');
+    const loginTarget = isPagesDir ? 'login.html' : 'pages/login.html';
+    const redirectUrl = encodeURIComponent(window.location.href);
+    window.location.replace(`${loginTarget}?redirect=${redirectUrl}`);
+  }
+  return false;
+}
+
+function showDemoBanner() {
+  if (document.getElementById('fwDemoBanner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'fwDemoBanner';
+  banner.style.cssText = 'background:rgba(59,130,246,0.15);border-bottom:1px solid rgba(96,165,250,0.3);color:#93c5fd;padding:10px 20px;font-size:0.83rem;display:flex;align-items:center;justify-content:space-between;z-index:99;';
+  banner.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;">
+      <i class="fa-solid fa-flask" style="color:#60a5fa;"></i>
+      <span><strong>Interactive Demo Mode:</strong> You are exploring with a pre-populated test kitchen. Changes you make here will not affect private accounts.</span>
+    </div>
+    <a href="signup.html" class="btn btn-primary btn-sm" style="padding:4px 12px;font-size:0.75rem;text-decoration:none;">Create Free Account</a>
+  `;
+  const main = document.querySelector('.main-content') || document.body;
+  if (main.firstChild) {
+    main.insertBefore(banner, main.firstChild);
+  } else {
+    main.appendChild(banner);
+  }
+}
+
+function syncUserProfile() {
+  const user = getCurrentUser() || { name: 'User', email: '', role: 'Regular User' };
+  const initials = (user.name || 'FW').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+  const nameEls = document.querySelectorAll('#userName, .user-name');
+  nameEls.forEach(el => { el.textContent = user.name || 'User'; });
+
+  const emailEls = document.querySelectorAll('#userEmail, .user-email');
+  emailEls.forEach(el => { el.textContent = user.email || ''; });
+
+  const roleEls = document.querySelectorAll('#userRole, .user-role');
+  roleEls.forEach(el => {
+    if (user.role === 'admin') el.textContent = 'Administrator';
+    else if (user.role === 'demo') el.textContent = 'Demo Account';
+    else el.textContent = 'Regular User';
+  });
+
+  const avatarEls = document.querySelectorAll('#userAvatar, #topUserAvatar, #bigAvatar, .user-avatar');
+  avatarEls.forEach(el => {
+    // Keep admin avatar style if in admin portal
+    if (!el.id.includes('admin')) {
+      el.textContent = initials;
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  syncUserProfile();
+});
+
+async function logout() {
+  try {
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'include'
+    });
+  } catch (e) {
+    // Ignore network error on logout
+  }
+
+  clearAuthSession();
+  showToast("Logged out successfully.", "info");
+
+  const isPagesDir = window.location.pathname.includes('/pages/');
+  const loginTarget = isPagesDir ? 'login.html' : 'pages/login.html';
+  setTimeout(() => {
+    window.location.href = loginTarget;
+  }, 600);
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (sidebar) sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('open');
+}
+
+
+// ===================================
 // AI FOOD KNOWLEDGE & RECOGNITION DICTIONARY
 // ===================================
 
 const FoodKnowledge = {
-  // Common foods database with alias matching, perishability rates, optimal storage and rescue tips
   catalog: [
     {
       id: 'tomato',
@@ -45,7 +250,7 @@ const FoodKnowledge = {
       category: 'vegetables',
       defaultStorage: 'countertop',
       idealTemp: '12°C - 20°C',
-      spoilageRate: 'fast', // 3-5 days
+      spoilageRate: 'fast',
       aliases: ['tomato', 'tomatoes', 'tamoto', 'tamatar', 'tomat', 'cherry tomato', 'roma tomato'],
       spoilageSigns: 'Softening, dark spots, wrinkly skin, sour smell, mold on stem.',
       tips: [
@@ -62,7 +267,7 @@ const FoodKnowledge = {
       category: 'dairy',
       defaultStorage: 'refrigerator',
       idealTemp: '2°C - 4°C',
-      spoilageRate: 'very_fast', // 2-4 days once open
+      spoilageRate: 'very_fast',
       aliases: ['milk', 'fresh milk', 'whole milk', 'skim milk', 'dairy milk', 'cow milk', 'milkk'],
       spoilageSigns: 'Sour odor, curdling, yellowish discoloration, lumpy texture.',
       tips: [
@@ -91,11 +296,11 @@ const FoodKnowledge = {
     {
       id: 'chicken',
       canonical: 'Raw Chicken',
-      emoji: '🥩',
+      emoji: '🍗',
       category: 'meat',
       defaultStorage: 'refrigerator',
       idealTemp: '0°C - 3°C',
-      spoilageRate: 'critical', // 1-2 days
+      spoilageRate: 'critical',
       aliases: ['chicken', 'chicken breast', 'poultry', 'chicken thighs', 'meat', 'chiken'],
       spoilageSigns: 'Slimy texture, grayish color, sour pungent odor.',
       tips: [
@@ -139,7 +344,7 @@ const FoodKnowledge = {
     {
       id: 'rice',
       canonical: 'Rice / Grains',
-      emoji: '🌾',
+      emoji: '🍚',
       category: 'grains',
       defaultStorage: 'pantry',
       idealTemp: '15°C - 25°C',
@@ -200,7 +405,6 @@ const FoodKnowledge = {
     }
   ],
 
-  // Fuzzy lookup by name
   matchFood: function (name) {
     if (!name) return null;
     const clean = name.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '');
@@ -214,204 +418,120 @@ const FoodKnowledge = {
 };
 
 // ===================================
-// AI VISION & IMAGE RECOGNITION ENGINE
-// ===================================
-
-const FoodVisionEngine = {
-  // Analyze uploaded image file name, MIME, and color features
-  detectFromImage: function (file, callback) {
-    if (!file) return;
-    const fileName = (file.name || '').toLowerCase();
-    
-    // Check filename hints first
-    let detected = null;
-    for (const item of FoodKnowledge.catalog) {
-      if (item.aliases.some(alias => fileName.includes(alias))) {
-        detected = { ...item, confidence: 94, source: 'AI Visual & Metadata Scanner' };
-        break;
-      }
-    }
-
-    // If filename doesn't match directly, read image pixels for dominant color analysis
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const dataUrl = e.target.result;
-      
-      if (!detected) {
-        const img = new Image();
-        img.onload = function () {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          canvas.width = 50;
-          canvas.height = 50;
-          ctx.drawImage(img, 0, 0, 50, 50);
-          
-          try {
-            const imageData = ctx.getImageData(0, 0, 50, 50).data;
-            let rTotal = 0, gTotal = 0, bTotal = 0, count = 0;
-            for (let i = 0; i < imageData.length; i += 16) {
-              rTotal += imageData[i];
-              gTotal += imageData[i + 1];
-              bTotal += imageData[i + 2];
-              count++;
-            }
-            const rAvg = rTotal / count;
-            const gAvg = gTotal / count;
-            const bAvg = bTotal / count;
-
-            // Heuristic color classifier
-            if (rAvg > 160 && gAvg < 110 && bAvg < 110) {
-              detected = { ...FoodKnowledge.matchFood('tomato'), confidence: 88, source: 'AI Chromatic & Feature Recognition' };
-            } else if (rAvg > 190 && gAvg > 190 && bAvg > 190) {
-              detected = { ...FoodKnowledge.matchFood('milk'), confidence: 86, source: 'AI Chromatic & Feature Recognition' };
-            } else if (gAvg > rAvg && gAvg > bAvg) {
-              detected = { ...FoodKnowledge.matchFood('spinach'), confidence: 85, source: 'AI Chromatic & Feature Recognition' };
-            } else if (rAvg > 150 && gAvg > 100 && bAvg < 80) {
-              detected = { ...FoodKnowledge.matchFood('bread'), confidence: 82, source: 'AI Chromatic & Feature Recognition' };
-            } else {
-              detected = { canonical: 'Food Item', emoji: '🍽️', category: 'other', confidence: 75, source: 'AI Visual Scanner' };
-            }
-          } catch (err) {
-            detected = { canonical: 'Food Item', emoji: '🍽️', category: 'other', confidence: 70, source: 'AI Visual Scanner' };
-          }
-          if (callback) callback(detected, dataUrl);
-        };
-        img.src = dataUrl;
-      } else {
-        if (callback) callback(detected, dataUrl);
-      }
-    };
-    reader.readAsDataURL(file);
-  }
-};
-
-// ===================================
-// CENTRAL DATA MANAGER (FoodDB)
+// CENTRAL USER-SCOPED DATA MANAGER (FoodDB)
 // ===================================
 
 const FoodDB = {
+  getUserKey: function() {
+    const user = getCurrentUser();
+    return user && user.id ? `fw_foods_${user.id}` : 'fw_foods_guest';
+  },
+
+  async syncFoodsWithBackend() {
+    const token = getAuthToken();
+    try {
+      const res = await fetch('/api/foods', {
+        headers: {
+          'Authorization': 'Bearer ' + token
+        },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.foods)) {
+          localStorage.setItem(this.getUserKey(), JSON.stringify(data.foods));
+          return data.foods;
+        }
+      }
+    } catch (e) {
+      console.warn("Backend foods sync notice:", e);
+    }
+    return this.getFoods();
+  },
+
   getFoods: function () {
-    const raw = localStorage.getItem('fw_foods');
+    const key = this.getUserKey();
+    const raw = localStorage.getItem(key);
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error("Error reading saved foods:", e);
       }
     }
-
-    // Default sample foods if empty
-    const defaults = [
-      {
-        id: 101,
-        food_name: "Fresh Whole Milk",
-        category: "dairy",
-        quantity: 2,
-        unit: "L",
-        storage_type: "refrigerator",
-        purchase_date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-        expiry_date: new Date(Date.now() + 1 * 86400000).toISOString().split('T')[0],
-        status: "fresh",
-        risk: "high",
-        risk_score: 84,
-        notes: "Organic whole milk",
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 102,
-        food_name: "Organic Tomatoes",
-        category: "vegetables",
-        quantity: 1.5,
-        unit: "kg",
-        storage_type: "countertop",
-        purchase_date: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
-        expiry_date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
-        status: "fresh",
-        risk: "high",
-        risk_score: 78,
-        notes: "Ripe red tomatoes",
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 103,
-        food_name: "Whole Wheat Bread",
-        category: "bakery",
-        quantity: 1,
-        unit: "loaf",
-        storage_type: "pantry",
-        purchase_date: new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0],
-        expiry_date: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
-        status: "consuming",
-        risk: "medium",
-        risk_score: 54,
-        notes: "Sliced sandwich bread",
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 104,
-        food_name: "Chicken Breast",
-        category: "meat",
-        quantity: 1.2,
-        unit: "kg",
-        storage_type: "refrigerator",
-        purchase_date: new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0],
-        expiry_date: new Date(Date.now() + 1 * 86400000).toISOString().split('T')[0],
-        status: "fresh",
-        risk: "high",
-        risk_score: 88,
-        notes: "Needs cooking soon",
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 105,
-        food_name: "Basmati Rice",
-        category: "grains",
-        quantity: 5,
-        unit: "kg",
-        storage_type: "pantry",
-        purchase_date: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0],
-        expiry_date: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
-        status: "fresh",
-        risk: "low",
-        risk_score: 8,
-        notes: "Stored in airtight container",
-        created_at: new Date().toISOString()
-      }
-    ];
-
-    localStorage.setItem('fw_foods', JSON.stringify(defaults));
-    return defaults;
+    return [];
   },
 
-  saveFood: function (foodData) {
-    const foods = this.getFoods();
-    const isEdit = foodData.id && foods.some(f => f.id === foodData.id);
-
-    // Predict risk for this food item
+  async saveFood(foodData) {
+    // Predict risk
     const prediction = this.predictWasteRisk(foodData);
     foodData.risk = prediction.risk;
     foodData.risk_score = prediction.score;
     foodData.food_profile = prediction.food_profile;
 
-    if (isEdit) {
-      const idx = foods.findIndex(f => f.id === foodData.id);
-      foods[idx] = { ...foods[idx], ...foodData, updated_at: new Date().toISOString() };
+    const token = getAuthToken();
+    const isEdit = foodData.id && typeof foodData.id === 'number' && foodData.id < 1000000000000;
+
+    // Send to backend API
+    try {
+      const url = isEdit ? `/api/foods/${foodData.id}` : '/api/foods';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        credentials: 'include',
+        body: JSON.stringify(foodData)
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success && result.food) {
+          foodData = result.food;
+        }
+      }
+    } catch (err) {
+      console.warn("Saved to local offline cache:", err);
+    }
+
+    // Save in user-scoped local storage
+    const foods = this.getFoods();
+    const existingIndex = foods.findIndex(f => f.id === foodData.id);
+
+    if (existingIndex >= 0) {
+      foods[existingIndex] = { ...foods[existingIndex], ...foodData, updated_at: new Date().toISOString() };
     } else {
       foodData.id = foodData.id || Date.now();
       foodData.created_at = foodData.created_at || new Date().toISOString();
       foods.unshift(foodData);
     }
 
-    localStorage.setItem('fw_foods', JSON.stringify(foods));
+    localStorage.setItem(this.getUserKey(), JSON.stringify(foods));
     localStorage.setItem('fw_selected_predict_id', foodData.id);
     return foodData;
   },
 
-  deleteFood: function (id) {
+  async deleteFood(id) {
+    const token = getAuthToken();
+    try {
+      await fetch(`/api/foods/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer ' + token
+        },
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.warn("Backend delete notice:", err);
+    }
+
     let foods = this.getFoods();
     foods = foods.filter(f => f.id !== id && f.id !== parseInt(id));
-    localStorage.setItem('fw_foods', JSON.stringify(foods));
+    localStorage.setItem(this.getUserKey(), JSON.stringify(foods));
     return foods;
   },
 
@@ -441,21 +561,20 @@ const FoodDB = {
 
     let score = 0;
 
-    // 1. Days Remaining (Primary risk factor)
-    if (days <= 0) score += 52;
-    else if (days <= 1) score += 46;
-    else if (days <= 2) score += 38;
-    else if (days <= 3) score += 28;
+    // 1. Days Remaining
+    if (days <= 0) score += 55;
+    else if (days === 1) score += 48;
+    else if (days === 2) score += 40;
+    else if (days === 3) score += 30;
     else if (days <= 5) score += 18;
-    else if (days <= 7) score += 12;
-    else if (days <= 14) score += 6;
-    else score += 2;
+    else if (days <= 7) score += 10;
+    else score += 4;
 
-    // 2. Specific Food & Category Perishability
+    // 2. Food & Category Perishability
     const catRisk = {
-      meat: 22,
+      meat: 24,
       dairy: 18,
-      vegetables: 16,
+      vegetables: 14,
       fruits: 14,
       bakery: 12,
       beverages: 6,
@@ -463,33 +582,26 @@ const FoodDB = {
       grains: 2,
       packaged: 2
     };
-    
+
     let foodBaseRisk = catRisk[category] !== undefined ? catRisk[category] : 10;
-    if (matchedProfile && matchedProfile.spoilageRate === 'critical') foodBaseRisk = 24;
-    else if (matchedProfile && matchedProfile.spoilageRate === 'very_fast') foodBaseRisk = 20;
-    else if (matchedProfile && matchedProfile.spoilageRate === 'fast') foodBaseRisk = 16;
     score += foodBaseRisk;
 
     // 3. Storage Type Compatibility
     let storagePenalty = 0;
     if (category === 'dairy' && storage !== 'refrigerator' && storage !== 'freezer') {
-      storagePenalty += 20; // Milk outside fridge spoils immediately
+      storagePenalty += 20;
     } else if (category === 'meat' && storage !== 'refrigerator' && storage !== 'freezer') {
-      storagePenalty += 24; // Meat outside fridge is critical risk
+      storagePenalty += 24;
     } else if (category === 'vegetables' && storage === 'countertop' && days <= 2) {
-      storagePenalty += 10; // Ripe tomatoes/veggies on warm countertop rot fast
+      storagePenalty += 12;
     } else if (storage === 'freezer') {
-      storagePenalty -= 14; // Freezing pauses spoilage
+      storagePenalty -= 14;
     }
     score += storagePenalty;
 
     // 4. Quantity Volume factor
-    if (qty > 5) score += 10;
+    if (qty > 4) score += 10;
     else if (qty > 2) score += 5;
-
-    // 5. User historical pattern
-    if (wasteLevel === 'high') score += 12;
-    else if (wasteLevel === 'medium') score += 5;
 
     // Bound score
     score = Math.min(Math.max(score, 5), 98);
@@ -498,23 +610,21 @@ const FoodDB = {
     if (score >= 65) risk = 'high';
     else if (score >= 35) risk = 'medium';
 
-    // Detailed explanation
     let explanation = "";
     if (days <= 0) {
       explanation = `⚠️ ${rawName} has reached or passed its expiration date. Inspect closely for spoilage before use.`;
     } else if (days <= 2 && risk === 'high') {
-      explanation = `🚨 High Waste Probability: ${rawName} has only ${days} day${days > 1 ? 's' : ''} left. ${matchedProfile ? matchedProfile.spoilageSigns : 'Fast spoilage expected.'}`;
+      explanation = `🚨 High Waste Probability: ${rawName} has only ${days} day${days > 1 ? 's' : ''} left. Consume or freeze immediately.`;
     } else if (risk === 'medium') {
-      explanation = `⏰ Moderate Risk: Consume or prepare ${rawName} within ${days} days to prevent spoilage.`;
+      explanation = `⏳ Moderate Risk: Consume or prepare ${rawName} within ${days} days to prevent spoilage.`;
     } else {
       explanation = `✅ Low Risk: ${rawName} is well within safe storage shelf-life (${days} days remaining).`;
     }
 
-    // Factor bar values
     const daysFactorVal = days <= 1 ? 95 : days <= 2 ? 85 : days <= 3 ? 70 : days <= 7 ? 40 : 15;
     const catFactorVal = Math.min(100, Math.round((foodBaseRisk / 24) * 100));
     const storageFactorVal = Math.min(100, Math.max(10, Math.round(((storagePenalty + 14) / 38) * 100)));
-    const qtyFactorVal = qty > 5 ? 85 : qty > 2 ? 55 : 25;
+    const qtyFactorVal = qty > 4 ? 85 : qty > 2 ? 55 : 25;
     const wasteFactorVal = wasteLevel === 'high' ? 85 : wasteLevel === 'medium' ? 50 : 20;
 
     return {
@@ -540,11 +650,7 @@ const FoodDB = {
   getPredictions: function () {
     const raw = localStorage.getItem('fw_predictions');
     if (raw) {
-      try {
-        return JSON.parse(raw);
-      } catch (e) {
-        console.error(e);
-      }
+      try { return JSON.parse(raw); } catch (e) {}
     }
     return [];
   },
@@ -555,69 +661,3 @@ const FoodDB = {
     localStorage.setItem('fw_predictions', JSON.stringify(preds.slice(0, 25)));
   }
 };
-
-// Initialize User
-if (!localStorage.getItem('fw_user')) {
-  localStorage.setItem('fw_user', JSON.stringify({
-    name: 'Pravallika Janagani',
-    email: 'pravallikajanagani4@gmail.com',
-    role: 'Regular User'
-  }));
-}
-
-function syncUserProfile() {
-  const user = JSON.parse(localStorage.getItem('fw_user') || '{"name":"Pravallika Janagani"}');
-  const initials = (user.name || 'PJ').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-
-  const nameEls = document.querySelectorAll('#userName, .user-name');
-  nameEls.forEach(el => { el.textContent = user.name || 'User'; });
-
-  const avatarEls = document.querySelectorAll('#userAvatar, #topUserAvatar, .user-avatar');
-  avatarEls.forEach(el => { el.textContent = initials; });
-}
-
-document.addEventListener('DOMContentLoaded', syncUserProfile);
-
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  if (sidebar) sidebar.classList.toggle('open');
-  if (overlay) overlay.classList.toggle('open');
-}
-
-function loginUser(event) {
-  if (event) event.preventDefault();
-  const email = document.getElementById("email")?.value || "";
-  const password = document.getElementById("password")?.value || "";
-
-  if (!email || !password) {
-    showToast("Please enter Email and Password", "error");
-    return;
-  }
-
-  showToast("Login Successful!", "success");
-  setTimeout(() => { window.location.href = "dashboard.html"; }, 600);
-}
-
-function signupUser(event) {
-  if (event) event.preventDefault();
-  const name = document.getElementById("name")?.value || "New User";
-  const email = document.getElementById("email")?.value || "";
-  const password = document.getElementById("password")?.value || "";
-  const confirmPassword = document.getElementById("confirmPassword")?.value || "";
-
-  if (password && confirmPassword && password !== confirmPassword) {
-    showToast("Passwords do not match!", "error");
-    return;
-  }
-
-  localStorage.setItem('fw_user', JSON.stringify({ name: name, email: email, role: 'Regular User' }));
-  showToast("Account Created Successfully!", "success");
-  setTimeout(() => { window.location.href = "dashboard.html"; }, 600);
-}
-
-function logout() {
-  localStorage.removeItem('fw_token');
-  showToast("Logged Out Successfully!", "info");
-  setTimeout(() => { window.location.href = "../index.html"; }, 600);
-}

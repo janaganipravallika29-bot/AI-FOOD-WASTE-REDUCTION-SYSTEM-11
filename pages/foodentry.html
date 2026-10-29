@@ -67,6 +67,7 @@
     <div class="nav-section-title">Account</div>
     <a href="profile.html"        class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
     <a href="admin.html"          class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+    <a href="javascript:void(0)" onclick="logout()" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout</a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
@@ -299,12 +300,12 @@
 <div id="toast-container"></div>
 <script src="../script.js"></script>
 <script>
-  // User info
-  const user = JSON.parse(localStorage.getItem('fw_user') || '{"name":"Pravallika Janagani"}');
-  const initials = (user.name||'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('userName').textContent = user.name || 'User';
-  document.getElementById('userAvatar').textContent = initials;
-  document.getElementById('topUserAvatar').textContent = initials;
+  // Auth Guard
+  (async function initFoodEntry() {
+    const isAuthed = await checkAuth({ redirectToLogin: true });
+    if (!isAuthed) return;
+    await FoodDB.syncFoodsWithBackend();
+  })();
 
   // Set today as default purchase date
   const today = new Date().toISOString().split('T')[0];
@@ -494,19 +495,8 @@
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
 
-    // Save to FoodDB
-    const savedFood = FoodDB.saveFood(d);
-
-    // Also attempt backend API if running
-    try {
-      await fetch('/api/foods', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(savedFood)
-      });
-    } catch (e) {
-      // Backend not running, local storage used seamlessly
-    }
+    // Save to FoodDB and sync to backend database
+    const savedFood = await FoodDB.saveFood(d);
 
     document.getElementById('formSuccess').classList.remove('hidden');
     showToast(`Food item "${savedFood.food_name}" saved successfully!`, 'success');

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Admin Login - FoodWise AI System Management">
+  <title>Admin Login - FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid rgba(167, 139, 250, 0.4);
+      color: #c4b5fd;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body class="auth-page">
+
+<!-- Left Panel -->
+<div class="auth-left" style="background:linear-gradient(135deg,#0a1f14 0%,#1e1435 100%);">
+  <div style="position:relative;z-index:1;width:100%;max-width:380px;text-align:center;">
+    <div class="nav-logo" style="justify-content:center;margin-bottom:32px;">
+      <div class="nav-logo-icon" style="width:48px;height:48px;font-size:1.5rem;background:linear-gradient(135deg,#8b5cf6,#a78bfa);">🛡️</div>
+      <span style="font-family:'Poppins',sans-serif;font-weight:700;font-size:1.2rem;">FoodWise <span style="color:#a78bfa;">Admin</span></span>
+    </div>
+    <div class="auth-hero-icon" style="background:rgba(139,92,246,0.15);border-color:rgba(167,139,250,0.3);color:#c4b5fd;">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+    <h2>Administrator Portal</h2>
+    <p>Restricted access for platform administrators. Oversee user accounts, system analytics, AI prediction logs, and database metrics.</p>
+  </div>
+</div>
+
+<!-- Right Panel -->
+<div class="auth-right">
+  <div class="auth-form-box">
+    <div class="logo-row">
+      <div class="nav-logo-icon" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);">🛡️</div>
+      <div>
+        <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:0.95rem;">FoodWise AI</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">Platform Administration</div>
+      </div>
+    </div>
+
+    <div class="admin-badge">
+      <i class="fa-solid fa-lock"></i> Protected Administrative Zone
+    </div>
+
+    <h1>Admin Sign In</h1>
+    <p class="auth-sub">Enter verified administrator credentials to access platform controls</p>
+
+    <!-- Error Alert -->
+    <div id="adminAlert" class="alert alert-danger hidden" role="alert">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span id="adminAlertMsg">Invalid administrator credentials.</span>
+    </div>
+
+    <!-- Success Alert -->
+    <div id="adminSuccess" class="alert alert-success hidden" role="alert">
+      <i class="fa-solid fa-circle-check"></i>
+      <span id="adminSuccessMsg">Admin authenticated! Redirecting to portal...</span>
+    </div>
+
+    <form id="adminLoginForm" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="adminEmail">Admin Email Address</label>
+        <div class="input-group">
+          <i class="fa-solid fa-envelope input-icon"></i>
+          <input type="email" id="adminEmail" class="form-control" placeholder="admin@foodwise.ai" autocomplete="email" required>
+        </div>
+        <div class="text-sm text-muted mt-2" id="adminEmailError" style="color:var(--danger);display:none;">Please enter your admin email.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="adminPassword">Admin Password</label>
+        <div class="input-group">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input type="password" id="adminPassword" class="form-control" placeholder="Enter administrative password" autocomplete="current-password" required>
+          <button type="button" class="toggle-pass" id="toggleAdminPass" aria-label="Toggle password">
+            <i class="fa-solid fa-eye" id="toggleAdminIcon"></i>
+          </button>
+        </div>
+        <div class="text-sm text-muted mt-2" id="adminPassError" style="color:var(--danger);display:none;">Password is required.</div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full" id="adminLoginBtn" style="justify-content:center;padding:14px;width:100%;background:linear-gradient(135deg,#7c3aed,#8b5cf6);border-color:#a78bfa;margin-top:14px;">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Authenticate as Admin</span>
+      </button>
+    </form>
+
+    <p style="text-align:center;margin-top:28px;font-size:0.88rem;color:var(--text-muted);">
+      Looking for regular user access?
+      <a href="login.html" style="color:var(--accent);font-weight:600;text-decoration:none;"> Back to User Login</a>
+    </p>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../script.js"></script>
+<script>
+  document.getElementById('toggleAdminPass').addEventListener('click', () => {
+    const input = document.getElementById('adminPassword');
+    const icon  = document.getElementById('toggleAdminIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'fa-solid fa-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'fa-solid fa-eye';
+    }
+  });
+
+  document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    let valid = true;
+
+    if (!email) {
+      document.getElementById('adminEmailError').style.display = 'block';
+      valid = false;
+    } else {
+      document.getElementById('adminEmailError').style.display = 'none';
+    }
+
+    if (!password) {
+      document.getElementById('adminPassError').style.display = 'block';
+      valid = false;
+    } else {
+      document.getElementById('adminPassError').style.display = 'none';
+    }
+
+    if (!valid) return;
+
+    document.getElementById('adminAlert').classList.add('hidden');
+    document.getElementById('adminSuccess').classList.add('hidden');
+
+    const btn = document.getElementById('adminLoginBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying permissions...';
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        localStorage.setItem('fw_token', data.token);
+        localStorage.setItem('fw_user', JSON.stringify(data.user));
+
+        document.getElementById('adminSuccess').classList.remove('hidden');
+        document.getElementById('adminSuccessMsg').textContent = `Welcome Administrator, ${data.user.name}!`;
+        showToast('Admin verification successful!', 'success');
+
+        setTimeout(() => {
+          window.location.href = 'admin.html';
+        }, 800);
+      } else {
+        document.getElementById('adminAlert').classList.remove('hidden');
+        document.getElementById('adminAlertMsg').textContent = data.message || 'Access denied: Invalid admin credentials.';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Authenticate as Admin';
+      }
+    } catch (err) {
+      document.getElementById('adminAlert').classList.remove('hidden');
+      document.getElementById('adminAlertMsg').textContent = 'Could not reach server. Please try again.';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Authenticate as Admin';
+    }
+  });
+</script>
+</body>
+</html>
+

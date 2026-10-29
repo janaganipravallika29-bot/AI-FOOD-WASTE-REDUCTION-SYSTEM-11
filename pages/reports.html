@@ -29,6 +29,7 @@
     <a href="notifications.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
     <div class="nav-section-title">Account</div>
     <a href="profile.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="javascript:void(0)" onclick="logout()" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout</a>
     <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
   </nav>
   <div class="sidebar-footer">
@@ -108,6 +109,12 @@
 <div id="toast-container"></div>
 <script src="../script.js"></script>
 <script>
+  (async function() {
+    const authed = await checkAuth({ redirectToLogin: true });
+    if (authed && typeof FoodDB !== "undefined" && FoodDB.syncFoodsWithBackend) {
+      await FoodDB.syncFoodsWithBackend();
+    }
+  })();
 const defaultUser = { name: "Pravallika Janagani", email: "pravallikajanagani4@gmail.com" };
 const user = JSON.parse(localStorage.getItem('fw_user') || JSON.stringify(defaultUser));
 const initials = (user.name || 'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);

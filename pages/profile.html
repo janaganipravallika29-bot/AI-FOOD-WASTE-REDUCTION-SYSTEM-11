@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Profile — FoodWise AI</title>
+  <title>User Profile - FoodWise AI</title>
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -13,7 +13,7 @@
 <!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-icon">🌿</div>
+    <div class="logo-icon">🌱</div>
     <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
   </div>
   <nav class="sidebar-nav">
@@ -30,11 +30,12 @@
     <div class="nav-section-title">Account</div>
     <a href="profile.html"         class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
     <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+    <a href="javascript:void(0)" onclick="logout()" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout</a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
-      <div class="user-avatar" id="userAvatar">PJ</div>
-      <div><div class="user-name" id="userName">Pravallika Janagani</div><div class="user-role">Regular User</div></div>
+      <div class="user-avatar" id="userAvatar">U</div>
+      <div><div class="user-name" id="userName">User</div><div class="user-role" id="userRole">Regular User</div></div>
     </div>
   </div>
 </aside>
@@ -47,7 +48,7 @@
     </div>
     <div class="topbar-right">
       <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
-      <div class="user-avatar" id="topUserAvatar">PJ</div>
+      <div class="user-avatar" id="topUserAvatar">U</div>
     </div>
   </header>
 
@@ -55,13 +56,13 @@
     <div style="max-width:800px;margin:0 auto;">
       <!-- Profile Header Card -->
       <div class="card" style="margin-bottom:24px;display:flex;align-items:center;gap:24px;padding:32px;">
-        <div class="user-avatar" style="width:80px;height:80px;font-size:2rem;" id="bigAvatar">PJ</div>
+        <div class="user-avatar" style="width:80px;height:80px;font-size:2rem;" id="bigAvatar">U</div>
         <div style="flex:1;">
-          <h2 id="profName">Pravallika Janagani</h2>
-          <p style="color:var(--text-muted);font-size:0.9rem;" id="profEmail">pravallikajanagani4@gmail.com</p>
+          <h2 id="profName">User Account</h2>
+          <p style="color:var(--text-muted);font-size:0.9rem;" id="profEmail">user@example.com</p>
           <div style="display:flex;gap:10px;margin-top:10px;">
-            <span class="badge badge-success">Active Member</span>
-            <span class="badge badge-info">Food Saver Tier 1</span>
+            <span class="badge badge-success" id="accountStatusBadge">Active Member</span>
+            <span class="badge badge-info" id="accountRoleBadge">Food Saver</span>
           </div>
         </div>
         <button class="btn btn-outline btn-sm" onclick="logout()"><i class="fa-solid fa-right-to-bracket"></i> Sign Out</button>
@@ -73,17 +74,18 @@
         <form id="profileForm" onsubmit="saveProfile(event)">
           <div class="form-group">
             <label class="form-label">Full Name</label>
-            <input type="text" id="editName" class="form-control" value="Pravallika Janagani" required>
+            <input type="text" id="editName" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Email Address</label>
-            <input type="email" id="editEmail" class="form-control" value="pravallikajanagani4@gmail.com" required>
+            <label class="form-label">Email Address (Registered)</label>
+            <input type="email" id="editEmail" class="form-control" readonly style="opacity:0.8;background:rgba(255,255,255,0.04);cursor:not-allowed;">
+            <div style="font-size:0.75rem;color:var(--text-dim);margin-top:4px;">Email is linked to your account and database food records.</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Change Password</label>
+            <label class="form-label">Update Password</label>
             <input type="password" id="editPwd" class="form-control" placeholder="Leave blank to keep current password">
           </div>
-          <button type="submit" class="btn btn-primary" style="padding:12px 24px;margin-top:10px;">
+          <button type="submit" id="saveProfileBtn" class="btn btn-primary" style="padding:12px 24px;margin-top:10px;">
             <i class="fa-solid fa-floppy-disk"></i> Save Profile Changes
           </button>
         </form>
@@ -95,40 +97,86 @@
 <div id="toast-container"></div>
 <script src="../script.js"></script>
 <script>
-const defaultUser = { name: "Pravallika Janagani", email: "pravallikajanagani4@gmail.com" };
-const user = JSON.parse(localStorage.getItem('fw_user') || JSON.stringify(defaultUser));
-const initials = (user.name || 'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-document.getElementById('userName').textContent = user.name;
-document.getElementById('userAvatar').textContent = initials;
-document.getElementById('topUserAvatar').textContent = initials;
-document.getElementById('bigAvatar').textContent = initials;
+  let currentUser = null;
 
-document.getElementById('profName').textContent = user.name;
-document.getElementById('profEmail').textContent = user.email;
-document.getElementById('editName').value = user.name;
-document.getElementById('editEmail').value = user.email;
+  async function initProfile() {
+    const isAuthed = await checkAuth({ redirectToLogin: true });
+    if (!isAuthed) return;
 
-function saveProfile(e) {
-  e.preventDefault();
-  const name = document.getElementById('editName').value;
-  const email = document.getElementById('editEmail').value;
-  const newUser = { ...user, name, email };
-  localStorage.setItem('fw_user', JSON.stringify(newUser));
-  showToast('Profile updated successfully!', 'success');
-  setTimeout(() => location.reload(), 1000);
-}
+    currentUser = getCurrentUser();
+    if (!currentUser) return;
 
-function logout() {
-  localStorage.removeItem('fw_user');
-  localStorage.removeItem('fw_token');
-  showToast('Logged out.', 'info');
-  setTimeout(() => window.location.href = 'login.html', 800);
-}
+    const initials = (currentUser.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebarOverlay').classList.toggle('open');
-}
+    document.getElementById('userName').textContent = currentUser.name || 'User';
+    document.getElementById('userAvatar').textContent = initials;
+    document.getElementById('topUserAvatar').textContent = initials;
+    document.getElementById('bigAvatar').textContent = initials;
+
+    document.getElementById('profName').textContent = currentUser.name || 'User';
+    document.getElementById('profEmail').textContent = currentUser.email || '';
+    document.getElementById('editName').value = currentUser.name || '';
+    document.getElementById('editEmail').value = currentUser.email || '';
+
+    if (currentUser.role === 'admin') {
+      document.getElementById('accountRoleBadge').textContent = 'Administrator';
+    } else if (currentUser.role === 'demo') {
+      document.getElementById('accountRoleBadge').textContent = 'Demo Explorer';
+    }
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    if (currentUser.role === 'demo') {
+      showToast('Profile cannot be changed in the shared public demo account.', 'warning');
+      return;
+    }
+
+    const name = document.getElementById('editName').value.trim();
+    const pwd = document.getElementById('editPwd').value;
+
+    const btn = document.getElementById('saveProfileBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving changes...';
+
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + getAuthToken()
+        },
+        credentials: 'include',
+        body: JSON.stringify({ name, password: pwd })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        currentUser.name = name;
+        setAuthSession(getAuthToken(), currentUser);
+        showToast('Profile updated successfully!', 'success');
+        document.getElementById('editPwd').value = '';
+        setTimeout(() => location.reload(), 900);
+      } else {
+        showToast(data.message || 'Failed to update profile.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Profile Changes';
+      }
+    } catch (err) {
+      showToast('Could not reach server to update profile.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Profile Changes';
+    }
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  }
+
+  document.addEventListener('DOMContentLoaded', initProfile);
 </script>
 </body>
 </html>

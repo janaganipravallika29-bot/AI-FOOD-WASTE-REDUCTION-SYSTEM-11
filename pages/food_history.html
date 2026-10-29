@@ -46,6 +46,7 @@
     <div class="nav-section-title">Account</div>
     <a href="profile.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
     <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+    <a href="javascript:void(0)" onclick="logout()" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout</a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
@@ -245,6 +246,7 @@ function daysLeftBadge(days) {
 const storageIcon = { refrigerator:'❄️', freezer:'🧊', pantry:'🏠', countertop:'🍽️', cellar:'🏚️' };
 
 async function loadFoods() {
+  await FoodDB.syncFoodsWithBackend();
   allFoods = FoodDB.getFoods();
   filteredFoods = [...allFoods];
   updateSummary();
@@ -415,7 +417,11 @@ function toggleSidebar() {
   document.getElementById('sidebarOverlay').classList.toggle('open');
 }
 
-loadFoods();
+(async function initFoodHistory() {
+  const isAuthed = await checkAuth({ redirectToLogin: true });
+  if (!isAuthed) return;
+  await loadFoods();
+})();
 </script>
 </body>
 </html>

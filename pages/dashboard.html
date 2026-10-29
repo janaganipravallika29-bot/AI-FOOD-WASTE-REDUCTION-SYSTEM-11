@@ -77,6 +77,9 @@
     <a href="admin.html" class="nav-item" id="nav-admin">
       <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel
     </a>
+    <a href="javascript:void(0)" onclick="logout()" class="nav-item" id="nav-logout">
+      <span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout
+    </a>
   </nav>
 
   <div class="sidebar-footer">
@@ -509,8 +512,15 @@ function toggleSidebar() {
   document.getElementById('sidebarOverlay').classList.toggle('open');
 }
 
-// Init
-loadDashboard();
+// Auth Guard & Dynamic Data Initialization
+(async function initDashboard() {
+  const isAuthed = await checkAuth({ redirectToLogin: true });
+  if (!isAuthed) return;
+
+  // Sync logged-in user's private foods from backend database
+  await FoodDB.syncFoodsWithBackend();
+  loadDashboard();
+})();
 </script>
 </body>
 </html>
