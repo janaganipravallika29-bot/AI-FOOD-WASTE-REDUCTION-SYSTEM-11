@@ -5,6 +5,12 @@ and user-specific data isolation scenarios.
 """
 import unittest
 import json
+import os
+import sys
+
+# Ensure project root is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from api.index import app
 from backend.models import db, User, Food
 from backend.auth_utils import generate_auth_token, verify_reset_token

@@ -39,6 +39,7 @@
     <div class="nav-section-title">Main Menu</div>
     <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
     <a href="foodentry.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="donation.html"        class="nav-item"><span class="nav-icon"><i class="fa-solid fa-hand-holding-heart"></i></span> Food Donation</a>
     <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
     <a href="prediction.html"      class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
     <a href="recommendations.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
@@ -49,6 +50,7 @@
     <div class="nav-section-title">Account</div>
     <a href="profile.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
     <a href="javascript:void(0)" onclick="logout()" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout</a>
+    <a href="ngo_dashboard.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-building-ngo"></i></span> NGO Portal</a>
     <a href="admin.html"           class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
   </nav>
   <div class="sidebar-footer">
@@ -215,6 +217,13 @@
             <div id="aiRescueText" style="font-size:0.83rem;color:var(--text-secondary);line-height:1.5;">
               Use or freeze food before expiration to eliminate waste.
             </div>
+          </div>
+
+          <!-- AI NGO Donation Suitability Section -->
+          <div id="predDonationSection" style="margin:14px 0;padding:14px;border-radius:var(--radius-md);background:var(--surface2);border:1px solid var(--border);">
+            <div id="predDonationBadgeWrap" style="margin-bottom:8px;"></div>
+            <div id="predDonationReason" style="font-size:0.83rem;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;"></div>
+            <div id="predDonationActionWrap"></div>
           </div>
 
           <!-- Actions -->
@@ -498,6 +507,9 @@ function displayResult(result, name) {
     document.querySelectorAll('.factor-fill').forEach(el => { el.style.width = el.dataset.width; });
   }, 150);
 
+    // Evaluate AI Donation Suitability
+  renderDonationSuitabilitySection(result, canonicalName);
+
   // Add to history
   addToHistory(canonicalName, result.risk, score, emoji);
   showToast(`Prediction Complete: ${result.risk.toUpperCase()} Risk (${score}%)`, result.risk === 'high' ? 'error' : result.risk === 'medium' ? 'warning' : 'success');
@@ -534,8 +546,236 @@ function toggleSidebar() {
   document.getElementById('sidebarOverlay').classList.toggle('open');
 }
 
+
+let predSelectedNgoId = null;
+let predAvailableNgos = [];
+
+function renderDonationSuitabilitySection(result, foodName) {
+  const badgeWrap = document.getElementById('predDonationBadgeWrap');
+  const reasonWrap = document.getElementById('predDonationReason');
+  const actionWrap = document.getElementById('predDonationActionWrap');
+  if (!badgeWrap || !reasonWrap || !actionWrap) return;
+
+  const days = result.days_remaining !== undefined ? result.days_remaining : (result.days_until_expiry || 3);
+  let suitable = result.donation_suitable;
+  let reason = result.donation_reason;
+
+  if (!suitable) {
+    if (days <= 0) {
+      suitable = 'unsafe';
+      reason = 'Food item is past expiration date. Unsafe for NGO redistribution.';
+    } else if (days <= 2 || result.risk === 'high') {
+      suitable = 'use_soon';
+      reason = 'Food is suitable for urgent rescue and consumption within 12-24 hours.';
+    } else {
+      suitable = 'safe';
+      reason = 'Food quality and shelf-life are excellent. Ideal for NGO meal redistribution.';
+    }
+  }
+
+  if (suitable === 'safe') {
+    badgeWrap.innerHTML = '<span class="safety-pill safe"><i class="fa-solid fa-circle-check"></i> SAFE TO DONATE</span>';
+    reasonWrap.textContent = reason;
+    actionWrap.innerHTML = `
+      <button type="button" class="btn btn-primary w-full" onclick="openPredNgoModal('${escape(foodName)}', '${suitable}')" style="justify-content:center;padding:12px;">
+        <i class="fa-solid fa-hand-holding-heart"></i> Donate to NGO Now
+      </button>
+    `;
+  } else if (suitable === 'use_soon') {
+    badgeWrap.innerHTML = '<span class="safety-pill use-soon"><i class="fa-solid fa-triangle-exclamation"></i> USE SOON (Urgent Donation Eligible)</span>';
+    reasonWrap.textContent = reason;
+    actionWrap.innerHTML = `
+      <button type="button" class="btn btn-primary w-full" onclick="openPredNgoModal('${escape(foodName)}', '${suitable}')" style="justify-content:center;padding:12px;background:linear-gradient(135deg,#d97706,#f59e0b);border-color:#fbbf24;">
+        <i class="fa-solid fa-bolt"></i> Request Immediate NGO Pickup
+      </button>
+    `;
+  } else {
+    badgeWrap.innerHTML = '<span class="safety-pill unsafe"><i class="fa-solid fa-ban"></i> NOT SAFE TO DONATE</span>';
+    reasonWrap.textContent = reason || 'Food has expired or spoiled; unsafe for human consumption or donation.';
+    actionWrap.innerHTML = `
+      <div style="font-size:0.8rem;color:#fca5a5;">
+        <i class="fa-solid fa-shield-halved" style="margin-right:6px;"></i>
+        Donation disabled by AI safety validator. Please compost or dispose responsibly.
+      </div>
+    `;
+  }
+}
+
+async function openPredNgoModal(foodName, suitable) {
+  document.getElementById('predModalFoodTitle').textContent = foodName || 'Food Item';
+  document.getElementById('predModalFoodMeta').textContent = suitable === 'safe' ? 'Verified Safe for NGO Donation' : 'Urgent Rescue Eligible';
+  
+  const modal = document.getElementById('predNgoModal');
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'auto';
+
+  try {
+    const res = await fetch('/api/ngos');
+    const data = await res.json();
+    if (res.ok && data.success && Array.isArray(data.ngos)) {
+      predAvailableNgos = data.ngos;
+      renderPredNgoList(predAvailableNgos);
+    }
+  } catch (err) {
+    document.getElementById('predNgoListContainer').innerHTML = '<p style="color:var(--danger);padding:14px;">Failed to load NGOs.</p>';
+  }
+}
+
+function closePredNgoModal() {
+  const modal = document.getElementById('predNgoModal');
+  modal.style.opacity = '0';
+  modal.style.pointerEvents = 'none';
+}
+
+function renderPredNgoList(ngos) {
+  const container = document.getElementById('predNgoListContainer');
+  if (!ngos || ngos.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);padding:14px;">No registered NGOs found.</p>';
+    return;
+  }
+
+  container.innerHTML = ngos.map(n => `
+    <div class="ngo-card ${predSelectedNgoId === n.id ? 'selected' : ''}" onclick="selectPredNgo(${n.id})" style="background:var(--surface);border:1px solid ${predSelectedNgoId === n.id ? 'var(--accent)' : 'var(--border)'};border-radius:var(--radius-md);padding:14px;cursor:pointer;">
+      <div style="font-weight:700;font-size:0.95rem;color:var(--text-primary);">${n.name}</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin:4px 0;"><i class="fa-solid fa-location-dot" style="margin-right:4px;color:var(--primary);"></i>${n.city}</div>
+      <div style="font-size:0.75rem;color:var(--text-secondary);"><strong>Accepts:</strong> ${n.accepted_food_types}</div>
+      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.7rem;color:var(--text-dim);">${n.phone}</span>
+        <span class="badge ${predSelectedNgoId === n.id ? 'badge-success' : 'badge-outline'}" style="font-size:0.7rem;">
+          ${predSelectedNgoId === n.id ? 'Selected' : 'Select'}
+        </span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectPredNgo(id) {
+  predSelectedNgoId = id;
+  renderPredNgoList(predAvailableNgos);
+  document.getElementById('predConfirmDonationBtn').disabled = false;
+}
+
+async function confirmPredDonationSubmission() {
+  if (!predSelectedNgoId) return;
+
+  const btn = document.getElementById('predConfirmDonationBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching...';
+
+  const notes = document.getElementById('predDonorPickupNotes').value.trim();
+
+  // If a saved food item was selected, use its ID; otherwise create a quick food record
+  let foodId = currentSelectedFoodId;
+  if (!foodId) {
+    // Create new food record in backend
+    try {
+      const createRes = await fetch('/api/foods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getAuthToken() },
+        credentials: 'include',
+        body: JSON.stringify({
+          food_name: document.getElementById('predFoodName').value.trim(),
+          category: document.getElementById('predCategory').value,
+          quantity: parseFloat(document.getElementById('predQty').value) || 1,
+          storage_type: document.getElementById('predStorage').value || 'refrigerator',
+          notes: notes
+        })
+      });
+      const createData = await createRes.json();
+      if (createData.success && createData.food) {
+        foodId = createData.food.id;
+      }
+    } catch (e) {}
+  }
+
+  if (!foodId) {
+    showToast('Please select or save the food item first.', 'warning');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Confirm & Send Donation Request';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/donations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getAuthToken() },
+      credentials: 'include',
+      body: JSON.stringify({
+        food_id: foodId,
+        ngo_id: predSelectedNgoId,
+        donor_notes: notes
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      closePredNgoModal();
+      showToast('Donation sent to NGO! Redirecting to tracker...', 'success');
+      setTimeout(() => {
+        window.location.href = `donation.html?id=${data.donation.id}`;
+      }, 900);
+    } else {
+      showToast(data.message || 'Donation could not be submitted.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Confirm & Send Donation Request';
+    }
+  } catch (err) {
+    showToast('Failed to dispatch donation.', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Confirm & Send Donation Request';
+  }
+}
+
 // Initial load
 loadSavedFoods();
 </script>
+
+<!-- NGO SELECTION MODAL -->
+<div class="modal-backdrop" id="predNgoModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.3s ease;">
+  <div class="modal-box" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:680px;width:100%;max-height:90vh;overflow-y:auto;padding:30px;box-shadow:var(--shadow-lg);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:14px;">
+      <div>
+        <h3 style="margin:0;display:flex;align-items:center;gap:10px;">
+          <i class="fa-solid fa-hand-holding-heart" style="color:var(--accent);"></i>
+          Select a Registered NGO Partner
+        </h3>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">
+          Choose an authorized local charity or community kitchen to receive this food donation.
+        </p>
+      </div>
+      <button class="icon-btn" onclick="closePredNgoModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Selected Food Summary Badge -->
+    <div id="predModalFoodSummary" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-weight:700;font-size:0.95rem;" id="predModalFoodTitle">Food Item</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);" id="predModalFoodMeta">Verified Safe for Donation</div>
+      </div>
+      <span class="safety-pill safe"><i class="fa-solid fa-check"></i> Safe to Donate</span>
+    </div>
+
+    <!-- Pickup Notes -->
+    <div class="form-group" style="margin-bottom:16px;">
+      <label class="form-label">Pickup Location & Volunteer Instructions</label>
+      <input type="text" id="predDonorPickupNotes" class="form-control" placeholder="e.g., Available at kitchen counter from 2 PM to 6 PM">
+    </div>
+
+    <!-- List of NGOs -->
+    <div class="form-section-title" style="font-size:0.78rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;"><i class="fa-solid fa-building-ngo"></i> Verified Registered NGOs Available</div>
+    <div id="predNgoListContainer" class="ngo-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:14px;max-height:340px;overflow-y:auto;padding:2px;">
+      <div style="text-align:center;padding:24px;color:var(--text-muted);">
+        <i class="fa-solid fa-circle-notch fa-spin"></i> Loading verified NGOs...
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">
+      <button type="button" class="btn btn-outline" onclick="closePredNgoModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" id="predConfirmDonationBtn" onclick="confirmPredDonationSubmission()" disabled>
+        <i class="fa-solid fa-paper-plane"></i> Confirm & Send Donation Request
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

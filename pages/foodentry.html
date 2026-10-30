@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add Food — FoodWise AI</title>
+  <title>Add Food & AI Donation - FoodWise AI</title>
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
@@ -15,7 +15,7 @@
     .image-upload-zone {
       border: 2px dashed var(--border);
       border-radius: var(--radius-md);
-      padding: 32px;
+      padding: 28px;
       text-align: center;
       cursor: pointer;
       transition: all var(--transition);
@@ -24,7 +24,7 @@
     .image-upload-zone:hover { border-color: var(--primary-light); background: var(--glass-light); }
     .image-upload-zone.has-image { border-style: solid; border-color: var(--primary); }
     .image-upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-    .image-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--radius-sm); display: none; }
+    .image-preview { width: 100%; max-height: 220px; object-fit: cover; border-radius: var(--radius-sm); display: none; }
     .upload-placeholder i { font-size: 2.5rem; color: var(--text-dim); margin-bottom: 10px; }
     .upload-placeholder p  { font-size: 0.85rem; color: var(--text-muted); }
     .form-card {
@@ -42,6 +42,30 @@
       display: flex; align-items: center; justify-content: space-between;
       z-index: 10;
     }
+    /* AI Result & Modal */
+    .ai-decision-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 24px;
+      margin-top: 24px;
+      animation: fadeIn 0.4s ease;
+    }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px); z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-xl); max-width: 680px; width: 100%;
+      max-height: 90vh; overflow-y: auto; padding: 30px;
+      box-shadow: var(--shadow-lg); transform: translateY(20px); transition: transform 0.3s ease;
+    }
+    .modal-backdrop.open .modal-box { transform: translateY(0); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body class="app-layout">
@@ -50,13 +74,14 @@
 <!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-icon">🌿</div>
+    <div class="logo-icon">🌱</div>
     <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section-title">Main Menu</div>
     <a href="dashboard.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
     <a href="foodentry.html"      class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="donation.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-hand-holding-heart"></i></span> Food Donation</a>
     <a href="food_history.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
     <a href="prediction.html"     class="nav-item"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
     <a href="recommendations.html"class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
@@ -66,13 +91,14 @@
     <a href="notifications.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
     <div class="nav-section-title">Account</div>
     <a href="profile.html"        class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="ngo_dashboard.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-building-ngo"></i></span> NGO Portal</a>
     <a href="admin.html"          class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
     <a href="javascript:void(0)" onclick="logout()" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout</a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
       <div class="user-avatar" id="userAvatar">U</div>
-      <div><div class="user-name" id="userName">User</div><div class="user-role">Regular User</div></div>
+      <div><div class="user-name" id="userName">User</div><div class="user-role">Donor</div></div>
     </div>
   </div>
 </aside>
@@ -82,11 +108,12 @@
     <div style="display:flex;align-items:center;gap:14px;">
       <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
       <div class="topbar-left">
-        <h1>Add Food Item</h1>
-        <p>Log a new food item to track expiry and get AI predictions</p>
+        <h1>Add Food & AI Donation Analysis</h1>
+        <p>Log food, predict freshness, and instantly donate surplus food to verified NGOs</p>
       </div>
     </div>
     <div class="topbar-right">
+      <a href="donation.html" class="btn btn-outline btn-sm"><i class="fa-solid fa-clock-rotate-left"></i> My Donations</a>
       <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
       <div class="user-avatar" id="topUserAvatar">U</div>
     </div>
@@ -95,43 +122,46 @@
   <main class="page-content">
     <div class="page-header">
       <div>
-        <h2><i class="fa-solid fa-plus-circle" style="color:var(--primary);margin-right:10px;"></i>New Food Entry</h2>
-        <p>Fill in the details about your food item. Fields marked * are required.</p>
+        <h2><i class="fa-solid fa-bowl-food" style="color:var(--primary);margin-right:10px;"></i>Food Entry & AI Donation Verification</h2>
+        <p>Enter food details and upload an image. The AI will evaluate freshness and unlock instant NGO donation.</p>
       </div>
-      <a href="food_history.html" class="btn btn-outline btn-sm"><i class="fa-solid fa-clock-rotate-left"></i> View History</a>
+      <a href="donation.html" class="btn btn-outline btn-sm"><i class="fa-solid fa-hand-holding-heart"></i> Donation Tracker</a>
     </div>
 
     <div id="formAlert" class="alert alert-danger hidden"><i class="fa-solid fa-triangle-exclamation"></i><span id="formAlertMsg"></span></div>
-    <div id="formSuccess" class="alert alert-success hidden"><i class="fa-solid fa-check-circle"></i>Food item saved successfully! <a href="prediction.html" style="color:inherit;font-weight:700;">Get AI Prediction →</a></div>
+    <div id="formSuccess" class="alert alert-success hidden"><i class="fa-solid fa-check-circle"></i><span id="formSuccessMsg">Food item saved!</span></div>
+
+    <!-- AI PREDICTION & DONATION RESULT PANEL (Shown after submission) -->
+    <div id="aiPredictionResultSection" class="hidden"></div>
 
     <form id="foodForm" novalidate>
 
-      <!-- Basic Info -->
+      <!-- Basic Food Info -->
       <div class="form-card">
-        <div class="form-section-title"><i class="fa-solid fa-info-circle"></i> Basic Information</div>
+        <div class="form-section-title"><i class="fa-solid fa-info-circle"></i> 1. Food Details</div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Food Name *</label>
             <div class="input-group">
               <i class="fa-solid fa-bowl-food input-icon"></i>
-              <input type="text" id="foodName" class="form-control" placeholder="e.g., Fresh Milk, Brown Rice..." required>
+              <input type="text" id="foodName" class="form-control" placeholder="e.g., Vegetable Biryani, Whole Milk, Fresh Apples..." required>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Category *</label>
+            <label class="form-label">Food Type / Category *</label>
             <div class="input-group">
               <i class="fa-solid fa-tags input-icon"></i>
               <select id="foodCategory" class="form-control" required style="padding-left:40px;">
                 <option value="">Select Category</option>
-                <option value="fruits">🍎 Fruits</option>
-                <option value="vegetables">🥦 Vegetables</option>
-                <option value="dairy">🥛 Dairy</option>
-                <option value="grains">🌾 Grains</option>
-                <option value="meat">🥩 Meat</option>
-                <option value="bakery">🍞 Bakery</option>
-                <option value="beverages">🧃 Beverages</option>
-                <option value="packaged">📦 Packaged Food</option>
-                <option value="other">🍽️ Other</option>
+                <option value="cooked">🍲 Cooked Meals & Catering</option>
+                <option value="vegetables">🥬 Fresh Vegetables</option>
+                <option value="fruits">🍎 Fresh Fruits</option>
+                <option value="dairy">🥛 Dairy & Milk</option>
+                <option value="bakery">🍞 Bakery & Bread</option>
+                <option value="grains">🍚 Grains, Rice & Pulses</option>
+                <option value="meat">🍗 Raw / Chilled Meat</option>
+                <option value="packaged">📦 Packaged & Canned Goods</option>
+                <option value="other">🍽️ Other Food</option>
               </select>
             </div>
           </div>
@@ -140,52 +170,47 @@
         <div class="form-row-3">
           <div class="form-group">
             <label class="form-label">Quantity *</label>
-            <input type="number" id="foodQty" class="form-control" placeholder="e.g., 2" min="0" step="0.1" required>
+            <input type="number" id="foodQty" class="form-control" placeholder="e.g., 5" min="0.1" step="0.1" required>
           </div>
           <div class="form-group">
             <label class="form-label">Unit *</label>
             <select id="foodUnit" class="form-control" required>
               <option value="kg">kg</option>
-              <option value="g">g</option>
-              <option value="L">L</option>
-              <option value="ml">ml</option>
-              <option value="pcs">pcs</option>
-              <option value="loaf">loaf</option>
-              <option value="pack">pack</option>
-              <option value="dozen">dozen</option>
-              <option value="other">other</option>
+              <option value="pack">pack / meal boxes</option>
+              <option value="L">L (liters)</option>
+              <option value="pcs">pieces</option>
+              <option value="loaf">loaves</option>
+              <option value="g">grams</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Storage Type *</label>
+            <label class="form-label">Storage Temperature / Type *</label>
             <div class="input-group">
               <i class="fa-solid fa-snowflake input-icon"></i>
               <select id="storageType" class="form-control" style="padding-left:40px;" required>
-                <option value="">Select Storage</option>
-                <option value="refrigerator">❄️ Refrigerator</option>
-                <option value="freezer">🧊 Freezer</option>
-                <option value="pantry">🏠 Pantry</option>
-                <option value="countertop">🍽️ Countertop</option>
-                <option value="cellar">🏚️ Cellar</option>
+                <option value="refrigerator">🧊 Refrigerator (2°C - 4°C)</option>
+                <option value="countertop">🧺 Room Temp / Countertop</option>
+                <option value="pantry">🥫 Dry Pantry</option>
+                <option value="freezer">❄️ Freezer (-18°C)</option>
               </select>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Dates -->
+      <!-- Time & Pickup Location -->
       <div class="form-card">
-        <div class="form-section-title"><i class="fa-solid fa-calendar"></i> Dates & Status</div>
+        <div class="form-section-title"><i class="fa-solid fa-clock"></i> 2. Preparation, Expiry & Pickup Location</div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Purchase Date *</label>
+            <label class="form-label">Preparation Time / Cooked Date *</label>
             <div class="input-group">
-              <i class="fa-solid fa-calendar-days input-icon"></i>
-              <input type="date" id="purchaseDate" class="form-control" style="padding-left:40px;" required>
+              <i class="fa-solid fa-kitchen-set input-icon"></i>
+              <input type="text" id="prepTime" class="form-control" placeholder="e.g., Today 11:30 AM or 3 hours ago" required>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Expiry Date *</label>
+            <label class="form-label">Expiry Date / Time *</label>
             <div class="input-group">
               <i class="fa-solid fa-calendar-xmark input-icon"></i>
               <input type="date" id="expiryDate" class="form-control" style="padding-left:40px;" required>
@@ -193,60 +218,29 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Consumption Status</label>
-            <select id="consumptionStatus" class="form-control">
-              <option value="fresh">Fresh</option>
-              <option value="consuming">Being Consumed</option>
-              <option value="consumed">Fully Consumed</option>
-              <option value="wasted">Wasted</option>
-            </select>
+        <div class="form-group" style="margin-top:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <label class="form-label" style="margin:0;">Donor Pickup Location / Address *</label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="autoFillLocation()" style="padding:2px 8px;font-size:0.75rem;">
+              <i class="fa-solid fa-location-crosshairs"></i> Use Profile Address
+            </button>
           </div>
-          <div id="expiryInfo" style="display:flex;align-items:center;padding:12px 16px;background:var(--surface);border-radius:var(--radius-md);font-size:0.88rem;color:var(--text-muted);">
-            <i class="fa-solid fa-clock-rotate-left" style="margin-right:8px;color:var(--primary);"></i>
-            <span id="expiryDaysText">Select both dates to see days remaining</span>
+          <div class="input-group">
+            <i class="fa-solid fa-location-dot input-icon"></i>
+            <input type="text" id="foodLocation" class="form-control" placeholder="Street Address, Area, City (where NGO volunteers will collect)" required>
           </div>
-        </div>
-      </div>
-
-      <!-- Waste Info -->
-      <div class="form-card">
-        <div class="form-section-title"><i class="fa-solid fa-trash-can"></i> Waste Information (Optional)</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Wasted Quantity</label>
-            <input type="number" id="wastedQty" class="form-control" placeholder="Amount wasted" min="0" step="0.1">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Waste Reason</label>
-            <select id="wasteReason" class="form-control">
-              <option value="">Not Wasted</option>
-              <option value="expired">Expired</option>
-              <option value="spoiled">Spoiled</option>
-              <option value="over_purchased">Over-purchased</option>
-              <option value="overcooked">Overcooked</option>
-              <option value="leftovers">Leftovers</option>
-              <option value="poor_storage">Poor Storage</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Notes</label>
-          <textarea id="foodNotes" class="form-control" rows="3" placeholder="Any additional notes about this food item..."></textarea>
         </div>
       </div>
 
       <!-- Image Upload & AI Vision Recognition -->
       <div class="form-card">
-        <div class="form-section-title"><i class="fa-solid fa-camera"></i> Food Image & AI Recognition</div>
+        <div class="form-section-title"><i class="fa-solid fa-camera"></i> 3. Food Image Upload (AI Quality Scanner)</div>
         <div class="image-upload-zone" id="uploadZone">
           <input type="file" id="foodImage" accept="image/*" onchange="previewAndScanImage(this)">
           <div class="upload-placeholder" id="uploadPlaceholder">
             <i class="fa-solid fa-cloud-arrow-up"></i>
-            <p>Click or drag & drop an image of your food</p>
-            <p style="font-size:0.75rem;margin-top:4px;color:var(--text-dim);">AI will automatically identify the food item · JPG, PNG, WebP</p>
+            <p style="font-weight:600;font-size:0.95rem;">Click or drag & drop a photo of the food</p>
+            <p style="font-size:0.78rem;margin-top:4px;color:var(--text-dim);">AI analyzes freshness, packaging integrity & color profile (JPG, PNG, WebP)</p>
           </div>
           <img id="imagePreview" class="image-preview" alt="Food preview">
         </div>
@@ -255,23 +249,22 @@
         <div id="aiVisionCard" class="hidden" style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 18px;">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
             <div style="display:flex;align-items:center;gap:12px;">
-              <span id="aiVisionEmoji" style="font-size:2rem;">🌿</span>
+              <span id="aiVisionEmoji" style="font-size:2rem;">🌱</span>
               <div>
-                <div style="font-size:0.78rem;font-weight:700;color:var(--primary-light);text-transform:uppercase;letter-spacing:0.5px;">AI Vision Scanner Detected</div>
-                <div style="font-weight:700;font-size:1rem;" id="aiVisionName">Scanning...</div>
+                <div style="font-size:0.78rem;font-weight:700;color:var(--primary-light);text-transform:uppercase;letter-spacing:0.5px;">AI Vision Scanner</div>
+                <div style="font-weight:700;font-size:1rem;" id="aiVisionName">Scanning food characteristics...</div>
                 <div style="font-size:0.78rem;color:var(--text-muted);" id="aiVisionDetails">Analyzing image attributes...</div>
               </div>
             </div>
             <button type="button" class="btn btn-outline btn-sm" id="applyAiBtn" onclick="applyAiDetection()" style="border-color:var(--primary);color:var(--accent);">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fill Form from Image
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fill Name & Category
             </button>
           </div>
+        </div>
 
-          <!-- Mismatch Alert -->
-          <div id="aiMismatchAlert" class="alert alert-warning hidden" style="margin-top:12px;margin-bottom:0;padding:10px 14px;font-size:0.85rem;">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <span id="aiMismatchText">Image and typed food name might differ.</span>
-          </div>
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label">Special Packaging or Handling Notes (Optional)</label>
+          <textarea id="foodNotes" class="form-control" rows="2" placeholder="e.g., Stored in sealed food-grade containers, vegetarian only, contains nuts..."></textarea>
         </div>
       </div>
 
@@ -279,17 +272,14 @@
       <div class="save-bar">
         <div>
           <div style="font-size:0.85rem;color:var(--text-muted);">
-            <i class="fa-solid fa-robot" style="color:var(--primary);margin-right:5px;"></i>
-            After saving, you can get an AI waste risk prediction.
+            <i class="fa-solid fa-shield-halved" style="color:var(--primary);margin-right:5px;"></i>
+            AI verifies food safety immediately before enabling NGO donation.
           </div>
         </div>
         <div style="display:flex;gap:12px;">
           <button type="button" class="btn btn-outline" onclick="resetForm()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
-          <button type="submit" class="btn btn-primary" id="saveBtn">
-            <i class="fa-solid fa-floppy-disk"></i> Save Food Item
-          </button>
-          <button type="button" class="btn btn-primary" id="savePredictBtn" onclick="saveAndPredict()" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);box-shadow:0 4px 20px rgba(139,92,246,0.4);">
-            <i class="fa-solid fa-brain"></i> Save & Predict
+          <button type="submit" class="btn btn-primary" id="saveBtn" style="padding:12px 24px;">
+            <i class="fa-solid fa-robot"></i> Submit Food & Analyze for NGO Donation
           </button>
         </div>
       </div>
@@ -297,243 +287,436 @@
   </main>
 </div>
 
+<!-- ============================================================
+     NGO SELECTION MODAL
+     ============================================================ -->
+<div class="modal-backdrop" id="ngoModal">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:14px;">
+      <div>
+        <h3 style="margin:0;display:flex;align-items:center;gap:10px;">
+          <i class="fa-solid fa-hand-holding-heart" style="color:var(--accent);"></i>
+          Select a Registered NGO Partner
+        </h3>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">
+          Choose an authorized local charity or community kitchen to receive this food donation.
+        </p>
+      </div>
+      <button class="icon-btn" onclick="closeNgoModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Selected Food Summary Badge -->
+    <div id="modalFoodSummary" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-weight:700;font-size:0.95rem;" id="modalFoodTitle">Food Item</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);" id="modalFoodMeta">Quantity • Location</div>
+      </div>
+      <span class="safety-pill safe"><i class="fa-solid fa-check"></i> Safe to Donate</span>
+    </div>
+
+    <!-- Donor Pickup Notes Input -->
+    <div class="form-group" style="margin-bottom:16px;">
+      <label class="form-label">Pickup Instructions for Volunteer (Optional)</label>
+      <input type="text" id="donorPickupNotes" class="form-control" placeholder="e.g., Gate code 4210, available for pickup until 5 PM today">
+    </div>
+
+    <!-- List of NGOs -->
+    <div class="form-section-title"><i class="fa-solid fa-building-ngo"></i> Verified Registered NGOs Available</div>
+    <div id="ngoListContainer" class="ngo-grid" style="max-height:360px;overflow-y:auto;padding:2px;">
+      <div style="text-align:center;padding:24px;color:var(--text-muted);">
+        <i class="fa-solid fa-circle-notch fa-spin"></i> Loading verified NGOs...
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">
+      <button type="button" class="btn btn-outline" onclick="closeNgoModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmDonationBtn" onclick="confirmDonationSubmission()" disabled>
+        <i class="fa-solid fa-paper-plane"></i> Confirm & Dispatch Donation Request
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script src="../script.js"></script>
 <script>
+  let scannedAiResult = null;
+  let savedFoodRecord = null;
+  let selectedNgoId = null;
+  let availableNgos = [];
+  let uploadedImageData = "";
+
   // Auth Guard
   (async function initFoodEntry() {
     const isAuthed = await checkAuth({ redirectToLogin: true });
     if (!isAuthed) return;
     await FoodDB.syncFoodsWithBackend();
+
+    // Default dates
+    const today = new Date().toISOString().split('T')[0];
+    const expiryDefault = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+    document.getElementById('expiryDate').value = expiryDefault;
+
+    // Auto-fill donor location from profile
+    const user = getCurrentUser();
+    if (user && user.address) {
+      document.getElementById('foodLocation').value = user.address;
+    }
   })();
 
-  // Set today as default purchase date
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('purchaseDate').value = today;
-
-  // Check if edit mode (?edit=ID)
-  const urlParams = new URLSearchParams(window.location.search);
-  const editId = urlParams.get('edit');
-  let currentEditingId = null;
-
-  if (editId) {
-    const existing = FoodDB.getFoodById(editId);
-    if (existing) {
-      currentEditingId = existing.id;
-      document.getElementById('foodName').value = existing.food_name || '';
-      document.getElementById('foodCategory').value = existing.category || '';
-      document.getElementById('foodQty').value = existing.quantity || '';
-      document.getElementById('foodUnit').value = existing.unit || 'kg';
-      document.getElementById('storageType').value = existing.storage_type || '';
-      document.getElementById('purchaseDate').value = existing.purchase_date || today;
-      document.getElementById('expiryDate').value = existing.expiry_date || '';
-      document.getElementById('consumptionStatus').value = existing.status || 'fresh';
-      document.getElementById('wastedQty').value = existing.wasted_qty || '';
-      document.getElementById('wasteReason').value = existing.waste_reason || '';
-      document.getElementById('foodNotes').value = existing.notes || '';
-      document.getElementById('saveBtn').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Food Item';
-    }
-  }
-
-  // Calculate days remaining
-  function calcDays() {
-    const p = document.getElementById('purchaseDate').value;
-    const e = document.getElementById('expiryDate').value;
-    if (!e) return;
-    const days = Math.ceil((new Date(e) - new Date()) / 86400000);
-    const el = document.getElementById('expiryDaysText');
-    if (days < 0) {
-      el.textContent = '⚠️ Already expired!';
-      el.style.color = 'var(--danger)';
-    } else if (days <= 3) {
-      el.textContent = `⏰ Expires in ${days} day${days!==1?'s':''} — Near Expiry`;
-      el.style.color = 'var(--warning)';
+  function autoFillLocation() {
+    const user = getCurrentUser();
+    if (user && user.address) {
+      document.getElementById('foodLocation').value = user.address;
+      showToast('Pickup address loaded from your profile.', 'info');
     } else {
-      el.textContent = `✅ ${days} days remaining — Fresh`;
-      el.style.color = 'var(--success)';
+      document.getElementById('foodLocation').value = '124 Green Park, Central Hub';
+      showToast('Sample address inserted.', 'info');
     }
   }
-  document.getElementById('expiryDate').addEventListener('change', calcDays);
-  document.getElementById('purchaseDate').addEventListener('change', calcDays);
 
-  // Image preview & AI Vision Recognition
-  let uploadedImageData = null;
-  let detectedAiFood = null;
-
+  // Image Upload & Vision Scanning
   function previewAndScanImage(input) {
-    const file = input.files[0];
-    if (!file) return;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedImageData = e.target.result;
+        const img = document.getElementById('imagePreview');
+        img.src = uploadedImageData;
+        img.style.display = 'block';
+        document.getElementById('uploadPlaceholder').style.display = 'none';
+        document.getElementById('uploadZone').classList.add('has-image');
 
-    // Show image preview
-    const reader = new FileReader();
-    reader.onload = e => {
-      uploadedImageData = e.target.result;
-      const img = document.getElementById('imagePreview');
-      img.src = uploadedImageData;
-      img.style.display = 'block';
-      document.getElementById('uploadPlaceholder').style.display = 'none';
-      document.getElementById('uploadZone').classList.add('has-image');
-    };
-    reader.readAsDataURL(file);
-
-    // Run AI Food Vision Scanner
-    const visionCard = document.getElementById('aiVisionCard');
-    visionCard.classList.remove('hidden');
-    document.getElementById('aiVisionName').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i> AI analyzing food image...';
-    document.getElementById('aiVisionDetails').textContent = 'Extracting color spectrum, visual patterns and category...';
-
-    FoodVisionEngine.detectFromImage(file, (detected, dataUrl) => {
-      detectedAiFood = detected;
-      if (detected) {
-        document.getElementById('aiVisionEmoji').textContent = detected.emoji || '🍽️';
-        document.getElementById('aiVisionName').textContent = `${detected.canonical || detected.id || 'Food Item'} (${detected.confidence}% Confidence)`;
-        document.getElementById('aiVisionDetails').textContent = `Category: ${(detected.category||'General').toUpperCase()} · Recommended Storage: ${(detected.defaultStorage||'Refrigerator').toUpperCase()}`;
-        
-        checkImageConsistency();
-        showToast(`AI Vision detected: ${detected.canonical || 'Food item'}!`, 'info');
-      }
-    });
+        // Trigger AI heuristic chromatic & metadata scanner
+        FoodVisionEngine.detectFromImage(file, function(detected) {
+          scannedAiResult = detected;
+          document.getElementById('aiVisionCard').classList.remove('hidden');
+          document.getElementById('aiVisionEmoji').textContent = detected.emoji || '🍽️';
+          document.getElementById('aiVisionName').textContent = `${detected.canonical} (${detected.confidence}% Match)`;
+          document.getElementById('aiVisionDetails').textContent = `Category: ${detected.category.toUpperCase()} • Recommended storage: ${detected.defaultStorage || 'Refrigerator'}`;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   function applyAiDetection() {
-    if (!detectedAiFood) return;
-    document.getElementById('foodName').value = detectedAiFood.canonical || detectedAiFood.id;
-    if (detectedAiFood.category) {
-      document.getElementById('foodCategory').value = detectedAiFood.category;
+    if (!scannedAiResult) return;
+    document.getElementById('foodName').value = scannedAiResult.canonical || '';
+    if (scannedAiResult.category) {
+      document.getElementById('foodCategory').value = scannedAiResult.category;
     }
-    if (detectedAiFood.defaultStorage) {
-      document.getElementById('storageType').value = detectedAiFood.defaultStorage;
+    if (scannedAiResult.defaultStorage) {
+      document.getElementById('storageType').value = scannedAiResult.defaultStorage;
     }
-    
-    // Auto-set suggested expiry based on food shelf-life
-    const daysOffset = detectedAiFood.spoilageRate === 'critical' ? 2 :
-                       detectedAiFood.spoilageRate === 'very_fast' ? 3 :
-                       detectedAiFood.spoilageRate === 'fast' ? 5 : 14;
-    const expDate = new Date(Date.now() + daysOffset * 86400000).toISOString().split('T')[0];
-    document.getElementById('expiryDate').value = expDate;
-    calcDays();
-
-    document.getElementById('aiMismatchAlert').classList.add('hidden');
-    showToast(`Form filled with AI-detected ${detectedAiFood.canonical} details!`, 'success');
+    showToast(`Applied ${scannedAiResult.canonical} details to form!`, 'success');
   }
 
-  function checkImageConsistency() {
-    const enteredName = document.getElementById('foodName').value.trim().toLowerCase();
-    const alertEl = document.getElementById('aiMismatchAlert');
-    const textEl = document.getElementById('aiMismatchText');
-
-    if (detectedAiFood && enteredName) {
-      const match = FoodKnowledge.matchFood(enteredName);
-      const enteredCanonical = match ? match.canonical : enteredName;
-      const detectedCanonical = detectedAiFood.canonical || '';
-
-      if (detectedCanonical && !detectedAiFood.aliases?.some(a => enteredName.includes(a)) && !enteredName.includes(detectedCanonical.toLowerCase())) {
-        textEl.innerHTML = `<strong>Image Mismatch:</strong> Your image looks like <strong>${detectedCanonical}</strong> (${detectedAiFood.category}), but you entered <strong>"${document.getElementById('foodName').value}"</strong>. You can click <em>"Auto-Fill Form from Image"</em> above or keep your custom entry.`;
-        alertEl.classList.remove('hidden');
-        return;
-      }
-    }
-    alertEl.classList.add('hidden');
-  }
-
-  document.getElementById('foodName').addEventListener('input', checkImageConsistency);
-
-  // Collect form data
-  function collectData() {
-    return {
-      id:           currentEditingId || undefined,
-      food_name:    document.getElementById('foodName').value.trim(),
-      category:     document.getElementById('foodCategory').value,
-      quantity:     parseFloat(document.getElementById('foodQty').value) || 0,
-      unit:         document.getElementById('foodUnit').value,
-      storage_type: document.getElementById('storageType').value,
-      purchase_date:document.getElementById('purchaseDate').value,
-      expiry_date:  document.getElementById('expiryDate').value,
-      status:       document.getElementById('consumptionStatus').value,
-      wasted_qty:   parseFloat(document.getElementById('wastedQty').value) || 0,
-      waste_reason: document.getElementById('wasteReason').value,
-      notes:        document.getElementById('foodNotes').value.trim(),
-      image:        uploadedImageData || undefined,
-      ai_detected:  detectedAiFood || undefined
-    };
-  }
-
-  // Validate
-  function validate(d) {
-    if (!d.food_name)    return 'Food name is required.';
-    if (!d.category)     return 'Please select a category.';
-    if (!d.quantity || d.quantity <= 0) return 'Quantity must be greater than 0.';
-    if (!d.storage_type) return 'Please select a storage type.';
-    if (!d.purchase_date)return 'Purchase date is required.';
-    if (!d.expiry_date)  return 'Expiry date is required.';
-    if (new Date(d.expiry_date) < new Date(d.purchase_date)) return 'Expiry date cannot be before purchase date.';
-    return null;
-  }
-
-  // Form submit handler
+  // Form Submission & Immediate AI Prediction Evaluation
   document.getElementById('foodForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    await submitForm(false);
-  });
 
-  async function saveAndPredict() {
-    await submitForm(true);
-  }
+    const name = document.getElementById('foodName').value.trim();
+    const category = document.getElementById('foodCategory').value;
+    const qty = parseFloat(document.getElementById('foodQty').value);
+    const unit = document.getElementById('foodUnit').value;
+    const storage = document.getElementById('storageType').value;
+    const prepTime = document.getElementById('prepTime').value.trim();
+    const expiry = document.getElementById('expiryDate').value;
+    const location = document.getElementById('foodLocation').value.trim();
+    const notes = document.getElementById('foodNotes').value.trim();
 
-  async function submitForm(redirect) {
-    const d = collectData();
-    const err = validate(d);
-    if (err) {
-      document.getElementById('formAlertMsg').textContent = err;
+    if (!name || !category || isNaN(qty) || !storage || !expiry || !prepTime || !location) {
+      document.getElementById('formAlertMsg').textContent = 'Please fill in all required fields (marked *), including preparation time and pickup location.';
       document.getElementById('formAlert').classList.remove('hidden');
-      showToast(err, 'error');
-      return false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
     document.getElementById('formAlert').classList.add('hidden');
 
-    const btn = document.getElementById('saveBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing with AI...';
 
-    // Save to FoodDB and sync to backend database
-    const savedFood = await FoodDB.saveFood(d);
+    const payload = {
+      food_name: name,
+      category: category,
+      quantity: qty,
+      unit: unit,
+      storage_type: storage,
+      prep_time: prepTime,
+      expiry_date: expiry,
+      location: location,
+      notes: notes,
+      image_url: uploadedImageData
+    };
 
-    document.getElementById('formSuccess').classList.remove('hidden');
-    showToast(`Food item "${savedFood.food_name}" saved successfully!`, 'success');
+    try {
+      const res = await fetch('/api/foods', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + getAuthToken()
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
 
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Food Item';
+      if (res.ok && data.success) {
+        savedFoodRecord = data.food;
+        const ai = data.ai_prediction;
 
-    if (redirect) {
-      setTimeout(() => {
-        window.location.href = `prediction.html?id=${savedFood.id}`;
-      }, 500);
-    } else {
-      setTimeout(() => {
-        resetForm();
-      }, 1000);
+        // Render AI result and immediate Donation action
+        renderAiDonationDecision(savedFoodRecord, ai);
+
+        showToast('Food analyzed successfully by AI!', 'success');
+        document.getElementById('aiPredictionResultSection').scrollIntoView({ behavior: 'smooth' });
+      } else {
+        showToast(data.message || 'Failed to submit food.', 'error');
+      }
+    } catch (err) {
+      showToast('Network error while contacting AI server.', 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fa-solid fa-robot"></i> Submit Food & Analyze for NGO Donation';
     }
-    return true;
+  });
+
+  // Display the 3 distinct cases: SAFE TO DONATE, USE SOON, UNSAFE TO DONATE
+  function renderAiDonationDecision(food, ai) {
+    const container = document.getElementById('aiPredictionResultSection');
+    container.classList.remove('hidden');
+
+    let safetyBadgeHtml = '';
+    let actionButtonHtml = '';
+    let cardBorderColor = 'var(--border)';
+
+    if (ai.donation_suitable === 'safe') {
+      // CASE 1: SAFE TO DONATE (Green status)
+      cardBorderColor = 'rgba(74, 222, 128, 0.5)';
+      safetyBadgeHtml = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span class="safety-pill safe"><i class="fa-solid fa-circle-check"></i> SAFE TO DONATE</span>
+          <span style="font-size:0.85rem;color:var(--accent);font-weight:600;">High Quality • Safe Shelf-Life (${ai.days_left} Days Remaining)</span>
+        </div>
+      `;
+      actionButtonHtml = `
+        <button type="button" class="btn btn-primary" onclick="openNgoSelectorModal()" style="padding:14px 28px;font-size:1rem;box-shadow:var(--shadow-glow);">
+          <i class="fa-solid fa-hand-holding-heart"></i> Donate to NGO Now
+        </button>
+      `;
+    } else if (ai.donation_suitable === 'use_soon') {
+      // CASE 2: USE SOON (Orange warning)
+      cardBorderColor = 'rgba(245, 158, 11, 0.5)';
+      safetyBadgeHtml = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span class="safety-pill use-soon"><i class="fa-solid fa-triangle-exclamation"></i> USE SOON</span>
+          <span style="font-size:0.85rem;color:#fbbf24;font-weight:600;">Urgent Rescue Window (${ai.days_left} Day(s) Left)</span>
+        </div>
+      `;
+      actionButtonHtml = `
+        <button type="button" class="btn btn-primary" onclick="openNgoSelectorModal()" style="padding:14px 28px;background:linear-gradient(135deg,#d97706,#f59e0b);border-color:#fbbf24;">
+          <i class="fa-solid fa-bolt"></i> Request Urgent NGO Pickup (Safe for Quick Meal)
+        </button>
+      `;
+    } else {
+      // CASE 3: UNSAFE TO DONATE (Red warning)
+      cardBorderColor = 'rgba(239, 68, 68, 0.5)';
+      safetyBadgeHtml = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span class="safety-pill unsafe"><i class="fa-solid fa-ban"></i> NOT SAFE TO DONATE</span>
+          <span style="font-size:0.85rem;color:#f87171;font-weight:600;">Expired or High Spoilage Probability</span>
+        </div>
+      `;
+      actionButtonHtml = `
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:var(--radius-md);padding:12px 18px;color:#fca5a5;font-size:0.85rem;">
+          <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>
+          <strong>Donation Disabled:</strong> For the health and safety of shelter beneficiaries, food past expiration or with critical spoilage risk cannot be dispatched to NGOs. Recommended action: Safely compost or dispose.
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="ai-decision-card" style="border-color:${cardBorderColor};margin-bottom:28px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:16px;">
+          <div>
+            <div style="font-size:0.75rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:1px;font-weight:700;">AI Food Analysis Result</div>
+            <h3 style="margin-top:4px;font-size:1.3rem;">${escapeHtml(food.food_name)} (${food.quantity} ${food.unit})</h3>
+          </div>
+          <div>${safetyBadgeHtml}</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:18px;">
+          <div style="background:var(--surface2);padding:12px 16px;border-radius:var(--radius-md);">
+            <div style="font-size:0.75rem;color:var(--text-muted);">Waste Risk Index</div>
+            <div style="font-size:1.2rem;font-weight:800;color:var(--accent);">${ai.score}%</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px 16px;border-radius:var(--radius-md);">
+            <div style="font-size:0.75rem;color:var(--text-muted);">Days Remaining</div>
+            <div style="font-size:1.2rem;font-weight:800;">${ai.days_left > 0 ? ai.days_left + ' Days' : '0 (Expired)'}</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px 16px;border-radius:var(--radius-md);">
+            <div style="font-size:0.75rem;color:var(--text-muted);">AI Confidence Score</div>
+            <div style="font-size:1.2rem;font-weight:800;color:#60a5fa;">${Math.round(ai.confidence * 100)}%</div>
+          </div>
+        </div>
+
+        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;margin-bottom:20px;">
+          <i class="fa-solid fa-robot" style="color:var(--primary);margin-right:6px;"></i>
+          ${escapeHtml(ai.donation_reason)}
+        </p>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+          <div>${actionButtonHtml}</div>
+          <a href="donation.html" class="btn btn-outline btn-sm">
+            <i class="fa-solid fa-list-check"></i> View All My Donations
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  // NGO Selector Modal
+  async function openNgoSelectorModal() {
+    if (!savedFoodRecord) {
+      showToast('Please submit and analyze food details first.', 'warning');
+      return;
+    }
+
+    document.getElementById('modalFoodTitle').textContent = `${savedFoodRecord.food_name} (${savedFoodRecord.quantity} ${savedFoodRecord.unit})`;
+    document.getElementById('modalFoodMeta').textContent = `Pickup: ${savedFoodRecord.location || 'Local'}`;
+
+    const modal = document.getElementById('ngoModal');
+    modal.classList.add('open');
+
+    // Load available NGOs from API
+    try {
+      const res = await fetch('/api/ngos');
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.ngos)) {
+        availableNgos = data.ngos;
+        renderNgoCards(availableNgos);
+      } else {
+        document.getElementById('ngoListContainer').innerHTML = '<p style="color:var(--danger);padding:16px;">Could not load NGOs.</p>';
+      }
+    } catch (e) {
+      document.getElementById('ngoListContainer').innerHTML = '<p style="color:var(--danger);padding:16px;">Failed to connect to NGO directory.</p>';
+    }
+  }
+
+  function closeNgoModal() {
+    document.getElementById('ngoModal').classList.remove('open');
+  }
+
+  function renderNgoCards(ngos) {
+    const container = document.getElementById('ngoListContainer');
+    if (!ngos || ngos.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);padding:16px;text-align:center;">No verified NGOs found in your area.</p>';
+      return;
+    }
+
+    container.innerHTML = ngos.map(ngo => {
+      const isSelected = selectedNgoId === ngo.id;
+      return `
+        <div class="ngo-card ${isSelected ? 'selected' : ''}" onclick="selectNgo(${ngo.id})">
+          <div class="ngo-card-header">
+            <div>
+              <div style="font-weight:700;font-size:0.95rem;color:var(--text-primary);">${escapeHtml(ngo.name)}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">
+                <i class="fa-solid fa-location-dot" style="margin-right:4px;color:var(--primary);"></i>${escapeHtml(ngo.city)}
+              </div>
+            </div>
+            <span class="ngo-badge-verified"><i class="fa-solid fa-shield-check"></i> Verified</span>
+          </div>
+
+          <div style="font-size:0.78rem;color:var(--text-secondary);margin:6px 0;">
+            <strong>Accepts:</strong> ${escapeHtml(ngo.accepted_food_types)}
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-dim);">
+            <strong>Contact:</strong> ${escapeHtml(ngo.contact_person)} (${escapeHtml(ngo.phone)})
+          </div>
+
+          <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:0.72rem;color:var(--text-muted);">Capacity: ${ngo.capacity_kg} kg/day</span>
+            <span class="badge ${isSelected ? 'badge-success' : 'badge-outline'}" style="font-size:0.75rem;">
+              ${isSelected ? '<i class="fa-solid fa-check"></i> Selected' : 'Click to Select'}
+            </span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function selectNgo(id) {
+    selectedNgoId = id;
+    renderNgoCards(availableNgos);
+    document.getElementById('confirmDonationBtn').disabled = false;
+  }
+
+  // Submit Donation to NGO
+  async function confirmDonationSubmission() {
+    if (!savedFoodRecord || !selectedNgoId) {
+      showToast('Please select an NGO from the list.', 'warning');
+      return;
+    }
+
+    const confirmBtn = document.getElementById('confirmDonationBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Dispatching Request...';
+
+    const donorNotes = document.getElementById('donorPickupNotes').value.trim();
+
+    try {
+      const res = await fetch('/api/donations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + getAuthToken()
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          food_id: savedFoodRecord.id,
+          ngo_id: selectedNgoId,
+          donor_notes: donorNotes
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        closeNgoModal();
+        showToast('Donation request sent to NGO successfully!', 'success');
+        
+        // Redirect to real-time donation tracker
+        setTimeout(() => {
+          window.location.href = `donation.html?id=${data.donation.id}`;
+        }, 1000);
+      } else {
+        showToast(data.message || 'Donation could not be processed.', 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Confirm & Dispatch Donation Request';
+      }
+    } catch (e) {
+      showToast('Network error while dispatching donation.', 'error');
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Confirm & Dispatch Donation Request';
+    }
   }
 
   function resetForm() {
     document.getElementById('foodForm').reset();
-    document.getElementById('purchaseDate').value = today;
-    uploadedImageData = null;
-    detectedAiFood = null;
     document.getElementById('imagePreview').style.display = 'none';
     document.getElementById('uploadPlaceholder').style.display = 'block';
-    document.getElementById('uploadZone').classList.remove('has-image');
     document.getElementById('aiVisionCard').classList.add('hidden');
-    document.getElementById('expiryDaysText').textContent = 'Select both dates to see days remaining';
-    document.getElementById('formSuccess').classList.add('hidden');
-    document.getElementById('formAlert').classList.add('hidden');
-    currentEditingId = null;
+    document.getElementById('aiPredictionResultSection').classList.add('hidden');
+    uploadedImageData = "";
   }
 
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebarOverlay').classList.toggle('open');
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 </script>
 </body>

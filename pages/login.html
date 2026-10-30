@@ -120,9 +120,14 @@
 
     <div class="divider"><span>or explore the platform</span></div>
 
-    <button class="btn btn-outline w-full" id="demoBtn" style="justify-content:center;padding:12px;width:100%;" onclick="useDemoAccount()">
-      <i class="fa-solid fa-flask"></i> Use Demo Account
-    </button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button class="btn btn-outline" id="demoBtn" style="justify-content:center;padding:12px;font-size:0.85rem;" onclick="useDemoAccount()">
+        <i class="fa-solid fa-flask"></i> Demo Donor
+      </button>
+      <button class="btn btn-outline" id="demoNgoBtn" style="justify-content:center;padding:12px;font-size:0.85rem;" onclick="useDemoNgoAccount()">
+        <i class="fa-solid fa-building-ngo"></i> Demo NGO
+      </button>
+    </div>
 
     <p style="text-align:center;margin-top:24px;font-size:0.88rem;color:var(--text-muted);">
       Don't have an account?
@@ -152,7 +157,13 @@
         const data = await res.json();
         if (data.success && data.user) {
           localStorage.setItem('fw_user', JSON.stringify(data.user));
-          window.location.replace('dashboard.html');
+          if (data.user.role === 'ngo') {
+            window.location.replace('ngo_dashboard.html');
+          } else if (data.user.role === 'admin') {
+            window.location.replace('admin.html');
+          } else {
+            window.location.replace('dashboard.html');
+          }
         }
       }
     } catch (e) {
@@ -189,7 +200,7 @@
   async function useDemoAccount() {
     const demoBtn = document.getElementById('demoBtn');
     demoBtn.disabled = true;
-    demoBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Entering demo...';
+    demoBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Entering...';
     hideAlert();
 
     try {
@@ -204,7 +215,7 @@
         localStorage.setItem('fw_token', data.token);
         localStorage.setItem('fw_user', JSON.stringify(data.user));
         document.getElementById('loginSuccess').classList.remove('hidden');
-        document.getElementById('loginSuccessMsg').textContent = 'Demo account ready! Redirecting...';
+        document.getElementById('loginSuccessMsg').textContent = 'Demo donor account ready! Redirecting...';
         showToast('Welcome to FoodWise AI Demo!', 'success');
         setTimeout(() => {
           window.location.href = 'dashboard.html';
@@ -212,18 +223,50 @@
       } else {
         showAlert(data.message || 'Demo account is currently unavailable.');
         demoBtn.disabled = false;
-        demoBtn.innerHTML = '<i class="fa-solid fa-flask"></i> Use Demo Account';
+        demoBtn.innerHTML = '<i class="fa-solid fa-flask"></i> Demo Donor';
       }
     } catch (err) {
       console.error('Demo login error:', err);
-      const isLiveServer = window.location.port !== '5000' && window.location.port !== '';
-      if (isLiveServer) {
-        showAlert('Backend not detected at http://127.0.0.1:5000. Start it in terminal via: python app.py (or open http://127.0.0.1:5000/pages/login.html).');
-      } else {
-        showAlert('Unable to connect to authentication server. Please ensure the backend is running.');
-      }
+      showAlert('Unable to connect to authentication server. Please ensure the backend is running.');
       demoBtn.disabled = false;
-      demoBtn.innerHTML = '<i class="fa-solid fa-flask"></i> Use Demo Account';
+      demoBtn.innerHTML = '<i class="fa-solid fa-flask"></i> Demo Donor';
+    }
+  }
+
+  // Handle Demo NGO Account Login
+  async function useDemoNgoAccount() {
+    const ngoBtn = document.getElementById('demoNgoBtn');
+    ngoBtn.disabled = true;
+    ngoBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Entering NGO...';
+    hideAlert();
+
+    try {
+      const res = await fetch('/api/demo-ngo-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        localStorage.setItem('fw_token', data.token);
+        localStorage.setItem('fw_user', JSON.stringify(data.user));
+        document.getElementById('loginSuccess').classList.remove('hidden');
+        document.getElementById('loginSuccessMsg').textContent = 'Demo NGO portal ready! Redirecting...';
+        showToast(`Signed into NGO: ${data.ngo ? data.ngo.name : 'FoodWise Rescue'}!`, 'success');
+        setTimeout(() => {
+          window.location.href = 'ngo_dashboard.html';
+        }, 800);
+      } else {
+        showAlert(data.message || 'Demo NGO is currently unavailable.');
+        ngoBtn.disabled = false;
+        ngoBtn.innerHTML = '<i class="fa-solid fa-building-ngo"></i> Demo NGO';
+      }
+    } catch (err) {
+      console.error('Demo NGO login error:', err);
+      showAlert('Unable to connect to authentication server. Please ensure the backend is running.');
+      ngoBtn.disabled = false;
+      ngoBtn.innerHTML = '<i class="fa-solid fa-building-ngo"></i> Demo NGO';
     }
   }
 
@@ -282,7 +325,16 @@
         showToast('Login successful!', 'success');
 
         const urlParams = new URLSearchParams(window.location.search);
-        const targetPage = urlParams.get('redirect') || 'dashboard.html';
+        let targetPage = urlParams.get('redirect');
+        if (!targetPage) {
+          if (data.user && data.user.role === 'ngo') {
+            targetPage = 'ngo_dashboard.html';
+          } else if (data.user && data.user.role === 'admin') {
+            targetPage = 'admin.html';
+          } else {
+            targetPage = 'dashboard.html';
+          }
+        }
 
         setTimeout(() => {
           window.location.href = targetPage;

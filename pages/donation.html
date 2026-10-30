@@ -1,68 +1,507 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-    <title>Food Donation</title>
-
-    <link rel="stylesheet" href="../style.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Donation & Live Tracking - FoodWise AI</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .donation-detail-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    @media(max-width: 900px) {
+      .donation-detail-grid { grid-template-columns: 1fr; }
+    }
+    .active-tracker-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      position: relative;
+    }
+    .status-badge-lg {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-badge-lg.pending { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+    .status-badge-lg.accepted { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+    .status-badge-lg.pickup-scheduled { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .status-badge-lg.collected { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.3); }
+    .status-badge-lg.delivered { background: rgba(20,184,166,0.15); color: #2dd4bf; border: 1px solid rgba(45,212,191,0.3); }
+    .status-badge-lg.completed { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(74,222,128,0.4); }
+    .status-badge-lg.rejected { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+  </style>
 </head>
+<body class="app-layout">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-<body class="donation-page">
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌱</div>
+    <div><div class="logo-text">FoodWise AI</div><div class="logo-sub">Smart Food Management</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">Main Menu</div>
+    <a href="dashboard.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Dashboard</a>
+    <a href="foodentry.html"      class="nav-item"><span class="nav-icon"><i class="fa-solid fa-plus-circle"></i></span> Add Food</a>
+    <a href="donation.html"       class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-hand-holding-heart"></i></span> Food Donation</a>
+    <a href="food_history.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Food History</a>
+    <a href="prediction.html"     class="nav-item"><span class="nav-icon"><i class="fa-solid fa-brain"></i></span> AI Prediction</a>
+    <a href="recommendations.html"class="nav-item"><span class="nav-icon"><i class="fa-solid fa-lightbulb"></i></span> Recommendations</a>
+    <div class="nav-section-title">Tracking</div>
+    <a href="waste_tracking.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span> Waste Tracking</a>
+    <a href="reports.html"        class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> Reports</a>
+    <a href="notifications.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-bell"></i></span> Notifications <span class="nav-badge">3</span></a>
+    <div class="nav-section-title">Account</div>
+    <a href="profile.html"        class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user-circle"></i></span> Profile</a>
+    <a href="ngo_dashboard.html"  class="nav-item"><span class="nav-icon"><i class="fa-solid fa-building-ngo"></i></span> NGO Portal</a>
+    <a href="admin.html"          class="nav-item"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Panel</a>
+    <a href="javascript:void(0)" onclick="logout()" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-right-to-bracket"></i></span> Logout</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">U</div>
+      <div><div class="user-name" id="userName">User</div><div class="user-role">Donor</div></div>
+    </div>
+  </div>
+</aside>
 
-<div class="donation-card">
+<div class="main-content">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left">
+        <h1>Food Donation & Live NGO Tracking</h1>
+        <p>Monitor your surplus food donations from request dispatch to shelter distribution</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="foodentry.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Donate Food</a>
+      <a href="notifications.html" class="icon-btn"><i class="fa-solid fa-bell"></i><span class="notif-dot"></span></a>
+      <div class="user-avatar" id="topUserAvatar">U</div>
+    </div>
+  </header>
 
-<h1>Food Donation</h1>
+  <main class="page-content">
+    <div class="page-header">
+      <div>
+        <h2><i class="fa-solid fa-hand-holding-heart" style="color:var(--primary);margin-right:10px;"></i>Donation Impact & Real-Time Tracking</h2>
+        <p>Verified NGO partners collect and redistribute surplus food to communities in need.</p>
+      </div>
+      <div>
+        <button class="btn btn-outline btn-sm" onclick="loadDonations()"><i class="fa-solid fa-rotate"></i> Refresh Status</button>
+      </div>
+    </div>
 
-<h2>Donate Extra Food</h2>
+    <!-- Impact KPI Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-icon"><i class="fa-solid fa-bowl-rice"></i></div>
+        <div class="kpi-value" id="kpiTotalKg">--<small style="font-size:1rem;"> kg</small></div>
+        <div class="kpi-label">Total Surplus Donated</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
+        <div class="kpi-value" id="kpiActivePickups">--</div>
+        <div class="kpi-label">Active / In-Transit</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-icon"><i class="fa-solid fa-people-roof"></i></div>
+        <div class="kpi-value" id="kpiMealsServed">--</div>
+        <div class="kpi-label">Estimated Meals Shared</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-icon"><i class="fa-solid fa-seedling"></i></div>
+        <div class="kpi-value" id="kpiCo2Saved">--<small style="font-size:1rem;"> kg</small></div>
+        <div class="kpi-label">CO2 Emission Avoided</div>
+      </div>
+    </div>
 
-<form onsubmit="submitDonation(event)">
+    <!-- LIVE ACTIVE DONATION TRACKER (Displayed when active or selected) -->
+    <div id="activeTrackerSection" class="hidden" style="margin-top:28px;">
+      <div class="active-tracker-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:16px;">
+          <div>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Active Food Dispatch</span>
+            <h3 style="font-size:1.35rem;margin-top:4px;" id="trackFoodTitle">Loading donation...</h3>
+          </div>
+          <div id="trackStatusBadge"></div>
+        </div>
 
-<input
-type="text"
-id="donor"
-placeholder="Donor Name"
-required>
+        <!-- 6-STEP VISUAL PROGRESSION TIMELINE -->
+        <div class="timeline-steps" id="timelineSteps">
+          <div class="timeline-step" id="step1">
+            <div class="t-circle"><i class="fa-solid fa-paper-plane"></i></div>
+            <span>Request Sent</span>
+          </div>
+          <div class="timeline-step" id="step2">
+            <div class="t-circle"><i class="fa-solid fa-handshake"></i></div>
+            <span>NGO Accepted</span>
+          </div>
+          <div class="timeline-step" id="step3">
+            <div class="t-circle"><i class="fa-solid fa-calendar-check"></i></div>
+            <span>Pickup Scheduled</span>
+          </div>
+          <div class="timeline-step" id="step4">
+            <div class="t-circle"><i class="fa-solid fa-truck"></i></div>
+            <span>Collected</span>
+          </div>
+          <div class="timeline-step" id="step5">
+            <div class="t-circle"><i class="fa-solid fa-utensils"></i></div>
+            <span>Delivered</span>
+          </div>
+          <div class="timeline-step" id="step6">
+            <div class="t-circle"><i class="fa-solid fa-circle-check"></i></div>
+            <span>Completed</span>
+          </div>
+        </div>
 
-<br><br>
+        <!-- Rejection Alert (only if rejected) -->
+        <div id="rejectionAlert" class="alert alert-danger hidden" style="margin-top:20px;">
+          <i class="fa-solid fa-circle-xmark"></i>
+          <div>
+            <strong>Donation Rejected by NGO:</strong>
+            <span id="rejectionReasonText">Capacity reached or unreachable location.</span>
+          </div>
+        </div>
 
-<input
-type="text"
-id="phone"
-placeholder="Phone Number"
-required>
+        <!-- Details Grid: NGO Info & Pickup Info -->
+        <div class="donation-detail-grid" style="margin-top:24px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;">
+            <h4 style="margin:0 0 14px 0;font-size:0.95rem;color:var(--accent);display:flex;align-items:center;gap:8px;">
+              <i class="fa-solid fa-building-ngo"></i> Selected NGO Partner Details
+            </h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.85rem;">
+              <div>
+                <div style="color:var(--text-dim);font-size:0.75rem;">Organization Name</div>
+                <div style="font-weight:700;font-size:0.95rem;color:var(--text-primary);" id="trackNgoName">--</div>
+              </div>
+              <div>
+                <div style="color:var(--text-dim);font-size:0.75rem;">Contact Person</div>
+                <div id="trackNgoContact">--</div>
+              </div>
+              <div>
+                <div style="color:var(--text-dim);font-size:0.75rem;">Phone Number</div>
+                <div id="trackNgoPhone">--</div>
+              </div>
+              <div>
+                <div style="color:var(--text-dim);font-size:0.75rem;">NGO Center Location</div>
+                <div id="trackNgoAddress">--</div>
+              </div>
+            </div>
 
-<br><br>
+            <!-- NGO Notes / Message -->
+            <div id="trackNgoNotesWrap" class="hidden" style="margin-top:14px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);font-size:0.82rem;">
+              <span style="color:var(--primary-light);font-weight:600;">Message from NGO:</span>
+              <span id="trackNgoNotes" style="color:var(--text-secondary);margin-left:6px;"></span>
+            </div>
+          </div>
 
-<input
-type="text"
-id="address"
-placeholder="Address"
-required>
+          <!-- Pickup Logistics Panel -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <h4 style="margin:0 0 14px 0;font-size:0.95rem;color:#60a5fa;display:flex;align-items:center;gap:8px;">
+                <i class="fa-solid fa-truck-fast"></i> Pickup Logistics
+              </h4>
+              <div id="pickupInfoContent" style="font-size:0.85rem;">
+                <p style="color:var(--text-muted);font-size:0.82rem;">Awaiting schedule confirmation from NGO dispatch team...</p>
+              </div>
+            </div>
+            <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-dim);">
+              <i class="fa-solid fa-location-dot" style="margin-right:4px;"></i> Donor Pickup: <span id="trackDonorLocation">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-<br><br>
+    <!-- Complete Donation History Table -->
+    <div class="card" style="padding:0;overflow:hidden;margin-top:28px;">
+      <div style="padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <h3><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);margin-right:8px;"></i>All Donation Records</h3>
+        <span class="badge badge-info" id="donationCountBadge">Loading donations...</span>
+      </div>
 
-<textarea
-id="message"
-placeholder="Additional Message"
-rows="4">
-</textarea>
-
-<br><br>
-
-<button type="submit">
-
-Donate Food
-
-</button>
-
-</form>
-
+      <div class="table-wrapper" style="border:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Food Item</th>
+              <th>Quantity</th>
+              <th>Assigned NGO</th>
+              <th>AI Safety Status</th>
+              <th>Live Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="donationsTableBody">
+            <tr>
+              <td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Loading donation history...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
 </div>
 
+<div id="toast-container"></div>
 <script src="../script.js"></script>
+<script>
+  let allDonations = [];
+  let currentTrackedDonation = null;
+  let pollInterval = null;
 
+  (async function initDonations() {
+    const isAuthed = await checkAuth({ redirectToLogin: true });
+    if (!isAuthed) return;
+
+    await loadDonations();
+
+    // Auto-poll every 12 seconds so status updates from NGO appear in real-time
+    pollInterval = setInterval(loadDonations, 12000);
+  })();
+
+  async function loadDonations() {
+    try {
+      const res = await fetch('/api/donations');
+      const data = await res.json();
+
+      if (res.ok && data.success && Array.isArray(data.donations)) {
+        allDonations = data.donations;
+        renderKpis(allDonations);
+        renderTable(allDonations);
+
+        // Check if query param ?id=123 is present
+        const urlParams = new URLSearchParams(window.location.search);
+        const focusId = urlParams.get('id');
+
+        if (focusId) {
+          const match = allDonations.find(d => String(d.id) === String(focusId));
+          if (match) {
+            displayActiveTracker(match);
+            return;
+          }
+        }
+
+        // Default to the most recent active or first donation
+        const active = allDonations.find(d => ['Pending', 'Accepted', 'Pickup Scheduled', 'Collected', 'Delivered'].includes(d.status));
+        if (active) {
+          displayActiveTracker(active);
+        } else if (allDonations.length > 0) {
+          displayActiveTracker(allDonations[0]);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load donations:', e);
+    }
+  }
+
+  function renderKpis(donations) {
+    let totalKg = 0;
+    let activePickups = 0;
+    let completed = 0;
+
+    donations.forEach(d => {
+      const qty = parseFloat(d.food_quantity) || 0;
+      totalKg += qty;
+      if (['Accepted', 'Pickup Scheduled', 'Collected', 'Delivered'].includes(d.status)) {
+        activePickups++;
+      } else if (d.status === 'Completed') {
+        completed++;
+      }
+    });
+
+    const mealsServed = Math.round(totalKg * 2.2); // ~2.2 meals per kg food
+    const co2Avoided = Math.round(totalKg * 2.5); // ~2.5 kg CO2 per kg food saved
+
+    document.getElementById('kpiTotalKg').innerHTML = `${totalKg.toFixed(1)}<small style="font-size:1rem;"> kg</small>`;
+    document.getElementById('kpiActivePickups').textContent = activePickups;
+    document.getElementById('kpiMealsServed').textContent = mealsServed;
+    document.getElementById('kpiCo2Saved').innerHTML = `${co2Avoided}<small style="font-size:1rem;"> kg</small>`;
+    document.getElementById('donationCountBadge').textContent = `${donations.length} Total Donations`;
+  }
+
+  function displayActiveTracker(d) {
+    currentTrackedDonation = d;
+    document.getElementById('activeTrackerSection').classList.remove('hidden');
+
+    document.getElementById('trackFoodTitle').textContent = `${d.food_name} (${d.food_quantity} ${d.food_unit})`;
+    document.getElementById('trackNgoName').textContent = d.ngo_name || 'Assigned NGO';
+    document.getElementById('trackNgoContact').textContent = d.ngo_contact || 'Operations Lead';
+    document.getElementById('trackNgoPhone').textContent = d.ngo_phone || 'Contact Number';
+    document.getElementById('trackNgoAddress').textContent = d.ngo_address || 'Regional Hub';
+    document.getElementById('trackDonorLocation').textContent = d.donor_location || 'Donor Address';
+
+    // Status Badge
+    const badgeWrap = document.getElementById('trackStatusBadge');
+    badgeWrap.innerHTML = renderStatusBadge(d.status);
+
+    // Timeline Steps progression
+    updateTimeline(d.status);
+
+    // Rejection details
+    const rejAlert = document.getElementById('rejectionAlert');
+    if (d.status === 'Rejected') {
+      rejAlert.classList.remove('hidden');
+      document.getElementById('rejectionReasonText').textContent = d.rejection_reason || d.ngo_notes || 'Partner capacity exceeded for this category.';
+    } else {
+      rejAlert.classList.add('hidden');
+    }
+
+    // NGO Notes
+    const notesWrap = document.getElementById('trackNgoNotesWrap');
+    if (d.ngo_notes) {
+      notesWrap.classList.remove('hidden');
+      document.getElementById('trackNgoNotes').textContent = d.ngo_notes;
+    } else {
+      notesWrap.classList.add('hidden');
+    }
+
+    // Pickup Details
+    const pickupWrap = document.getElementById('pickupInfoContent');
+    if (d.pickup && d.pickup.scheduled_time) {
+      pickupWrap.innerHTML = `
+        <div style="color:var(--accent);font-weight:700;margin-bottom:6px;">
+          <i class="fa-solid fa-clock"></i> ${escapeHtml(d.pickup.scheduled_time)}
+        </div>
+        <div style="color:var(--text-secondary);margin-bottom:4px;">
+          <strong>Volunteer / Driver:</strong> ${escapeHtml(d.pickup.agent_name || 'Assigned Volunteer')}
+        </div>
+        <div style="color:var(--text-secondary);margin-bottom:4px;">
+          <strong>Phone:</strong> <a href="tel:${escapeHtml(d.pickup.agent_phone)}" style="color:var(--accent);text-decoration:none;">${escapeHtml(d.pickup.agent_phone)}</a>
+        </div>
+        ${d.pickup.vehicle_info ? `<div style="color:var(--text-dim);font-size:0.8rem;">Vehicle: ${escapeHtml(d.pickup.vehicle_info)}</div>` : ''}
+        ${d.pickup.pickup_notes ? `<div style="margin-top:6px;font-style:italic;color:var(--text-muted);font-size:0.8rem;">Note: "${escapeHtml(d.pickup.pickup_notes)}"</div>` : ''}
+      `;
+    } else if (d.status === 'Accepted') {
+      pickupWrap.innerHTML = `<p style="color:#34d399;"><i class="fa-solid fa-check"></i> Donation accepted! NGO team is assigning a pickup volunteer.</p>`;
+    } else if (d.status === 'Completed') {
+      pickupWrap.innerHTML = `<p style="color:var(--accent);"><i class="fa-solid fa-circle-check"></i> Successfully delivered to beneficiaries. Thank you for reducing food waste!</p>`;
+    } else if (d.status === 'Rejected') {
+      pickupWrap.innerHTML = `<p style="color:#f87171;"><i class="fa-solid fa-ban"></i> Request was declined.</p>`;
+    } else {
+      pickupWrap.innerHTML = `<p style="color:var(--text-muted);"><i class="fa-solid fa-hourglass-half"></i> Awaiting NGO review & pickup confirmation.</p>`;
+    }
+  }
+
+  function updateTimeline(status) {
+    const steps = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6'];
+    steps.forEach(s => {
+      const el = document.getElementById(s);
+      if (el) {
+        el.className = 'timeline-step';
+      }
+    });
+
+    const statusMap = {
+      'Pending': 1,
+      'Accepted': 2,
+      'Pickup Scheduled': 3,
+      'Collected': 4,
+      'Delivered': 5,
+      'Completed': 6
+    };
+
+    if (status === 'Rejected') {
+      document.getElementById('step1').classList.add('completed');
+      const s2 = document.getElementById('step2');
+      s2.classList.add('rejected');
+      s2.querySelector('span').textContent = 'Rejected';
+      return;
+    }
+
+    const currentLevel = statusMap[status] || 1;
+    for (let i = 1; i <= currentLevel; i++) {
+      const el = document.getElementById(`step${i}`);
+      if (el) {
+        if (i < currentLevel) el.classList.add('completed');
+        else el.classList.add('active');
+      }
+    }
+  }
+
+  function renderTable(donations) {
+    const tbody = document.getElementById('donationsTableBody');
+    if (!donations || donations.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">
+            You haven't made any donations yet.
+            <div style="margin-top:10px;">
+              <a href="foodentry.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Donate Food Now</a>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = donations.map(d => {
+      const dateStr = d.created_at ? new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
+      
+      let safetyBadge = '<span class="badge badge-success">Safe</span>';
+      if (d.ai_suitable === 'use_soon') safetyBadge = '<span class="badge badge-warning">Use Soon</span>';
+      else if (d.ai_suitable === 'unsafe') safetyBadge = '<span class="badge badge-danger">Unsafe</span>';
+
+      return `
+        <tr>
+          <td>${dateStr}</td>
+          <td><strong>${escapeHtml(d.food_name)}</strong></td>
+          <td>${d.food_quantity} ${d.food_unit}</td>
+          <td>${escapeHtml(d.ngo_name)}</td>
+          <td>${safetyBadge}</td>
+          <td>${renderStatusBadge(d.status)}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="trackSingleDonation(${d.id})">
+              <i class="fa-solid fa-eye"></i> Track
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderStatusBadge(status) {
+    const s = (status || 'Pending').toLowerCase().replace(' ', '-');
+    let icon = 'fa-paper-plane';
+    if (status === 'Accepted') icon = 'fa-handshake';
+    else if (status === 'Pickup Scheduled') icon = 'fa-calendar-check';
+    else if (status === 'Collected') icon = 'fa-truck';
+    else if (status === 'Delivered') icon = 'fa-utensils';
+    else if (status === 'Completed') icon = 'fa-circle-check';
+    else if (status === 'Rejected') icon = 'fa-circle-xmark';
+
+    return `<span class="status-badge-lg ${s}"><i class="fa-solid ${icon}"></i> ${escapeHtml(status)}</span>`;
+  }
+
+  function trackSingleDonation(id) {
+    const match = allDonations.find(d => d.id === id);
+    if (match) {
+      displayActiveTracker(match);
+      document.getElementById('activeTrackerSection').scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+</script>
 </body>
-
 </html>

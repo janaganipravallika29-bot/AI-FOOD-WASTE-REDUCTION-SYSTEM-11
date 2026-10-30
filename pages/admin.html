@@ -6,6 +6,58 @@
   <title>Admin Dashboard - FoodWise AI</title>
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .status-badge-lg {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    .status-badge-lg.pending { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+    .status-badge-lg.accepted { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+    .status-badge-lg.pickup-scheduled { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .status-badge-lg.collected { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.3); }
+    .status-badge-lg.delivered { background: rgba(20,184,166,0.15); color: #2dd4bf; border: 1px solid rgba(45,212,191,0.3); }
+    .status-badge-lg.completed { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(74,222,128,0.4); }
+    .status-badge-lg.rejected { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+    .admin-tabs {
+      display: flex;
+      gap: 12px;
+      margin: 24px 0 16px 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      overflow-x: auto;
+    }
+    .admin-tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .admin-tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.05);
+    }
+    .admin-tab-btn.active {
+      background: var(--surface2);
+      color: var(--accent);
+      border-color: var(--border-hover);
+    }
+  </style>
 </head>
 <body class="app-layout">
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -19,6 +71,8 @@
   <nav class="sidebar-nav">
     <div class="nav-section-title">Admin Controls</div>
     <a href="admin.html"           class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Admin Dashboard</a>
+    <a href="ngo_dashboard.html"   class="nav-item"><span class="nav-icon"><i class="fa-solid fa-building-ngo"></i></span> NGO Portal</a>
+    <a href="donation.html"        class="nav-item"><span class="nav-icon"><i class="fa-solid fa-hand-holding-heart"></i></span> Donations Tracker</a>
     <a href="dashboard.html"       class="nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> User Dashboard</a>
     <a href="food_history.html"    class="nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span> All Food Records</a>
     <a href="reports.html"         class="nav-item"><span class="nav-icon"><i class="fa-solid fa-file-chart-column"></i></span> System Reports</a>
@@ -36,10 +90,10 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;gap:14px;">
       <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
-      <div class="topbar-left"><h1>Admin Portal</h1><p>Global platform analytics and user management</p></div>
+      <div class="topbar-left"><h1>Admin Portal</h1><p>Global platform analytics, NGO verification & food donation monitoring</p></div>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-outline btn-sm" onclick="logout()" style="margin-right:8px;"><i class="fa-solid fa-right-to-bracket"></i> Sign Out</button>
+      <button class="btn btn-outline btn-sm" onclick="refreshAdminData()" style="margin-right:8px;"><i class="fa-solid fa-rotate"></i> Refresh</button>
       <div class="user-avatar" id="adminTopAvatar" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);">AD</div>
     </div>
   </header>
@@ -47,11 +101,11 @@
   <main class="page-content">
     <div class="page-header">
       <div>
-        <h2><i class="fa-solid fa-shield-halved" style="color:#a78bfa;margin-right:10px;"></i>Platform Overview</h2>
-        <p>Real-time platform statistics, database user accounts, and AI system health.</p>
+        <h2><i class="fa-solid fa-shield-halved" style="color:#a78bfa;margin-right:10px;"></i>Platform Command Center</h2>
+        <p>Real-time platform statistics, NGO partner verification, and global food rescue oversight.</p>
       </div>
       <div>
-        <button class="btn btn-outline btn-sm" onclick="refreshAdminData()"><i class="fa-solid fa-rotate"></i> Refresh Data</button>
+        <span class="badge badge-success" style="padding:8px 14px;font-size:0.85rem;"><i class="fa-solid fa-circle-check"></i> System Operational</span>
       </div>
     </div>
 
@@ -63,26 +117,49 @@
         <div class="kpi-label">Registered Accounts</div>
       </div>
       <div class="kpi-card green">
+        <div class="kpi-icon"><i class="fa-solid fa-building-ngo"></i></div>
+        <div class="kpi-value" id="kpiNgos">--</div>
+        <div class="kpi-label">Registered NGOs</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-icon"><i class="fa-solid fa-hand-holding-heart"></i></div>
+        <div class="kpi-value" id="kpiDonations">--</div>
+        <div class="kpi-label">Total Donations</div>
+      </div>
+      <div class="kpi-card blue">
         <div class="kpi-icon"><i class="fa-solid fa-bowl-food"></i></div>
         <div class="kpi-value" id="kpiFoods">--</div>
         <div class="kpi-label">Total Food Logs</div>
       </div>
-      <div class="kpi-card blue">
+      <div class="kpi-card orange">
         <div class="kpi-icon"><i class="fa-solid fa-brain"></i></div>
         <div class="kpi-value" id="kpiPredictions">--</div>
         <div class="kpi-label">AI Predictions</div>
       </div>
-      <div class="kpi-card red">
-        <div class="kpi-icon"><i class="fa-solid fa-trash-can"></i></div>
-        <div class="kpi-value" id="kpiWasted">--</div>
-        <div class="kpi-label">Wasted Food Items</div>
+      <div class="kpi-card green">
+        <div class="kpi-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
+        <div class="kpi-value" id="kpiCompletedDonations">--</div>
+        <div class="kpi-label">Completed Rescues</div>
       </div>
     </div>
 
-    <!-- Registered Users Management Table -->
-    <div class="card" style="padding:0;overflow:hidden;margin-top:24px;">
-      <div style="padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-        <h3><i class="fa-solid fa-users-gear" style="color:var(--primary);margin-right:8px;"></i>Registered User Accounts</h3>
+    <!-- Navigation Tabs -->
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" id="tabBtnUsers" onclick="switchAdminTab('users')">
+        <i class="fa-solid fa-users"></i> User Accounts (<span id="tabCountUsers">0</span>)
+      </button>
+      <button class="admin-tab-btn" id="tabBtnNgos" onclick="switchAdminTab('ngos')">
+        <i class="fa-solid fa-building-ngo"></i> NGO Verification Management (<span id="tabCountNgos">0</span>)
+      </button>
+      <button class="admin-tab-btn" id="tabBtnDonations" onclick="switchAdminTab('donations')">
+        <i class="fa-solid fa-hand-holding-heart"></i> Platform Food Donations (<span id="tabCountDonations">0</span>)
+      </button>
+    </div>
+
+    <!-- TAB 1: Registered Users -->
+    <div id="sectionUsers" class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;"><i class="fa-solid fa-users-gear" style="color:var(--primary);margin-right:8px;"></i>Registered User Accounts</h3>
         <span class="badge badge-info" id="userCountBadge">Loading users...</span>
       </div>
       <div class="table-wrapper" style="border:none;">
@@ -92,6 +169,7 @@
               <th>User Name</th>
               <th>Email</th>
               <th>Role</th>
+              <th>Phone / Address</th>
               <th>Food Items</th>
               <th>Status</th>
               <th>Joined Date</th>
@@ -99,7 +177,7 @@
           </thead>
           <tbody id="usersTableBody">
             <tr>
-              <td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted);">
+              <td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">
                 <i class="fa-solid fa-circle-notch fa-spin"></i> Loading registered user database...
               </td>
             </tr>
@@ -107,12 +185,92 @@
         </table>
       </div>
     </div>
+
+    <!-- TAB 2: NGO Verification Management -->
+    <div id="sectionNgos" class="card hidden" style="padding:0;overflow:hidden;">
+      <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;"><i class="fa-solid fa-building-circle-check" style="color:var(--accent);margin-right:8px;"></i>NGO Partner Verification & Capacity</h3>
+        <span class="badge badge-success" id="ngoCountBadge">Loading NGOs...</span>
+      </div>
+      <div class="table-wrapper" style="border:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>NGO Name</th>
+              <th>Reg Number</th>
+              <th>City / Location</th>
+              <th>Contact Person</th>
+              <th>Phone</th>
+              <th>Capacity (kg/day)</th>
+              <th>Verification Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="ngosTableBody">
+            <tr>
+              <td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Loading registered NGOs...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: Platform Food Donations Monitoring -->
+    <div id="sectionDonations" class="card hidden" style="padding:0;overflow:hidden;">
+      <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <h3 style="margin:0;"><i class="fa-solid fa-truck-fast" style="color:var(--accent);margin-right:8px;"></i>Global Food Donations & Rescues</h3>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <select id="donationFilterStatus" class="form-control" style="width:auto;padding:4px 10px;font-size:0.82rem;" onchange="filterAdminDonations(this.value)">
+            <option value="all">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Pickup Scheduled">Pickup Scheduled</option>
+            <option value="Collected">Collected</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Completed">Completed</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+          <span class="badge badge-info" id="donationCountBadge">Loading donations...</span>
+        </div>
+      </div>
+      <div class="table-wrapper" style="border:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Food Item</th>
+              <th>Qty</th>
+              <th>Donor</th>
+              <th>Assigned NGO</th>
+              <th>AI Safety</th>
+              <th>Status</th>
+              <th>Volunteer / Pickup</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody id="donationsTableBody">
+            <tr>
+              <td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted);">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Loading donations...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 </div>
 
 <div id="toast-container"></div>
 <script src="../script.js"></script>
 <script>
+  let adminUsers = [];
+  let adminNgos = [];
+  let adminDonations = [];
+
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebarOverlay').classList.toggle('open');
@@ -123,9 +281,7 @@
     const token = localStorage.getItem('fw_token') || '';
     try {
       const res = await fetch('/api/me', {
-        headers: {
-          'Authorization': 'Bearer ' + token
-        },
+        headers: { 'Authorization': 'Bearer ' + token },
         credentials: 'include'
       });
 
@@ -142,7 +298,6 @@
         return false;
       }
 
-      // Display admin details
       const adminName = data.user.name || 'Administrator';
       const initials = adminName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'AD';
       document.getElementById('adminSidebarName').textContent = adminName;
@@ -154,6 +309,24 @@
       showToast('Could not verify administrator session.', 'error');
       setTimeout(() => window.location.href = 'admin_login.html', 700);
       return false;
+    }
+  }
+
+  function switchAdminTab(tabName) {
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('sectionUsers').classList.add('hidden');
+    document.getElementById('sectionNgos').classList.add('hidden');
+    document.getElementById('sectionDonations').classList.add('hidden');
+
+    if (tabName === 'users') {
+      document.getElementById('tabBtnUsers').classList.add('active');
+      document.getElementById('sectionUsers').classList.remove('hidden');
+    } else if (tabName === 'ngos') {
+      document.getElementById('tabBtnNgos').classList.add('active');
+      document.getElementById('sectionNgos').classList.remove('hidden');
+    } else if (tabName === 'donations') {
+      document.getElementById('tabBtnDonations').classList.add('active');
+      document.getElementById('sectionDonations').classList.remove('hidden');
     }
   }
 
@@ -174,9 +347,11 @@
         const statsData = await statsRes.json();
         if (statsData.success && statsData.stats) {
           document.getElementById('kpiUsers').textContent = statsData.stats.total_users;
+          document.getElementById('kpiNgos').textContent = statsData.stats.total_ngos || 0;
           document.getElementById('kpiFoods').textContent = statsData.stats.total_foods;
           document.getElementById('kpiPredictions').textContent = statsData.stats.total_predictions;
-          document.getElementById('kpiWasted').textContent = statsData.stats.total_wasted;
+          document.getElementById('kpiDonations').textContent = statsData.stats.total_donations || 0;
+          document.getElementById('kpiCompletedDonations').textContent = statsData.stats.completed_donations || 0;
         }
       }
     } catch (e) {
@@ -189,38 +364,175 @@
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         if (usersData.success && Array.isArray(usersData.users)) {
-          renderUsersTable(usersData.users);
-          document.getElementById('userCountBadge').textContent = `${usersData.users.length} Active Accounts`;
+          adminUsers = usersData.users;
+          renderUsersTable(adminUsers);
+          document.getElementById('userCountBadge').textContent = `${adminUsers.length} Accounts`;
+          document.getElementById('tabCountUsers').textContent = adminUsers.length;
         }
       }
     } catch (e) {
       console.error('Failed to load admin users:', e);
+    }
+
+    // 3. Fetch NGOs
+    try {
+      const ngosRes = await fetch('/api/admin/ngos', { headers, credentials: 'include' });
+      if (ngosRes.ok) {
+        const ngosData = await ngosRes.json();
+        if (ngosData.success && Array.isArray(ngosData.ngos)) {
+          adminNgos = ngosData.ngos;
+          renderNgosTable(adminNgos);
+          document.getElementById('ngoCountBadge').textContent = `${adminNgos.length} Registered NGOs`;
+          document.getElementById('tabCountNgos').textContent = adminNgos.length;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load NGOs:', e);
+    }
+
+    // 4. Fetch Donations
+    try {
+      const donRes = await fetch('/api/admin/donations', { headers, credentials: 'include' });
+      if (donRes.ok) {
+        const donData = await donRes.json();
+        if (donData.success && Array.isArray(donData.donations)) {
+          adminDonations = donData.donations;
+          renderDonationsTable(adminDonations);
+          document.getElementById('donationCountBadge').textContent = `${adminDonations.length} Requests`;
+          document.getElementById('tabCountDonations').textContent = adminDonations.length;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load donations:', e);
     }
   }
 
   function renderUsersTable(users) {
     const tbody = document.getElementById('usersTableBody');
     if (!users || users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">No registered users found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">No registered users found.</td></tr>';
       return;
     }
 
     tbody.innerHTML = users.map(u => {
-      let roleBadge = '<span class="badge badge-muted">Regular User</span>';
+      let roleBadge = '<span class="badge badge-muted">Donor (User)</span>';
       if (u.role === 'admin') roleBadge = '<span class="badge badge-success" style="background:rgba(139,92,246,0.2);color:#c4b5fd;border-color:rgba(167,139,250,0.4);"><i class="fa-solid fa-shield-halved"></i> Admin</span>';
+      else if (u.role === 'ngo') roleBadge = '<span class="badge badge-info"><i class="fa-solid fa-building-ngo"></i> NGO Partner</span>';
       else if (u.role === 'demo') roleBadge = '<span class="badge badge-info"><i class="fa-solid fa-flask"></i> Demo Account</span>';
 
       const joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
       const foodCount = u.food_count !== undefined ? `${u.food_count} items` : '0 items';
+      const contactInfo = u.phone ? `${escapeHtml(u.phone)}<br><small style="color:var(--text-dim);">${escapeHtml(u.address || '')}</small>` : '<span style="color:var(--text-dim);">Not provided</span>';
 
       return `
         <tr>
           <td><strong>${escapeHtml(u.name)}</strong></td>
           <td>${escapeHtml(u.email)}</td>
           <td>${roleBadge}</td>
+          <td>${contactInfo}</td>
           <td>${foodCount}</td>
           <td><span class="badge badge-success">${escapeHtml(u.status || 'Active')}</span></td>
           <td>${joined}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderNgosTable(ngos) {
+    const tbody = document.getElementById('ngosTableBody');
+    if (!ngos || ngos.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">No registered NGOs found in database.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = ngos.map(n => {
+      const isVer = n.is_verified;
+      const verBadge = isVer
+        ? '<span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Verified</span>'
+        : '<span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pending Review</span>';
+
+      const toggleBtn = isVer
+        ? `<button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:rgba(239,68,68,0.4);padding:4px 10px;" onclick="toggleNgoVerify(${n.id})"><i class="fa-solid fa-ban"></i> Revoke</button>`
+        : `<button class="btn btn-primary btn-sm" style="padding:4px 10px;" onclick="toggleNgoVerify(${n.id})"><i class="fa-solid fa-check"></i> Verify NGO</button>`;
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(n.name)}</strong></td>
+          <td><span style="font-family:monospace;font-size:0.8rem;">${escapeHtml(n.reg_number || 'N/A')}</span></td>
+          <td>${escapeHtml(n.city || 'Citywide')}</td>
+          <td>${escapeHtml(n.contact_person || n.name)}</td>
+          <td>${escapeHtml(n.phone || 'N/A')}</td>
+          <td><strong>${n.capacity_kg || 200}</strong> kg</td>
+          <td>${verBadge}</td>
+          <td>${toggleBtn}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function toggleNgoVerify(ngoId) {
+    const token = localStorage.getItem('fw_token') || '';
+    try {
+      const res = await fetch(`/api/admin/ngos/${ngoId}/verify`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message, 'success');
+        loadAdminData();
+      } else {
+        showToast(data.message || 'Action failed.', 'error');
+      }
+    } catch (e) {
+      showToast('Network error updating NGO verification.', 'error');
+    }
+  }
+
+  function filterAdminDonations(status) {
+    if (status === 'all') {
+      renderDonationsTable(adminDonations);
+    } else {
+      renderDonationsTable(adminDonations.filter(d => d.status === status));
+    }
+  }
+
+  function renderDonationsTable(donations) {
+    const tbody = document.getElementById('donationsTableBody');
+    if (!donations || donations.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">No donations found matching criteria.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = donations.map(d => {
+      const food = d.food_item || {};
+      const donor = d.donor || {};
+      const ngo = d.ngo || {};
+      const pickup = d.pickup || {};
+
+      const statusClass = d.status.toLowerCase().replace(/\s+/g, '-');
+      const statusBadge = `<span class="status-badge-lg ${statusClass}"><i class="fa-solid fa-circle"></i> ${escapeHtml(d.status)}</span>`;
+
+      let aiSafety = '<span class="badge badge-success">Safe</span>';
+      if (food.donation_suitable === 'use_soon') aiSafety = '<span class="badge badge-warning">Use Soon</span>';
+      else if (food.donation_suitable === 'unsafe') aiSafety = '<span class="badge badge-danger">Unsafe</span>';
+
+      const volunteerInfo = pickup && pickup.agent_name
+        ? `<strong>${escapeHtml(pickup.agent_name)}</strong><br><small style="color:var(--text-dim);">${escapeHtml(pickup.scheduled_time || '')}</small>`
+        : '<span style="color:var(--text-dim);">Not scheduled</span>';
+
+      return `
+        <tr>
+          <td>#${d.id}</td>
+          <td><strong>${escapeHtml(food.name || 'Food')}</strong></td>
+          <td>${food.quantity || 1} ${escapeHtml(food.unit || 'kg')}</td>
+          <td>${escapeHtml(donor.name || 'Donor')}</td>
+          <td><strong style="color:var(--accent);">${escapeHtml(ngo.name || 'NGO')}</strong></td>
+          <td>${aiSafety}</td>
+          <td>${statusBadge}</td>
+          <td>${volunteerInfo}</td>
+          <td><small>${new Date(d.created_at).toLocaleDateString()}</small></td>
         </tr>
       `;
     }).join('');
@@ -236,7 +548,6 @@
     loadAdminData();
   }
 
-  // Initialize
   document.addEventListener('DOMContentLoaded', loadAdminData);
 </script>
 </body>

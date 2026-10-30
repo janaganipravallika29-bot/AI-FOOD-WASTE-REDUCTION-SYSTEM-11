@@ -142,6 +142,34 @@ def admin_required(f):
     return decorated_function
 
 
+def ngo_required(f):
+    """
+    Decorator to protect routes requiring an NGO or Administrator role.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from backend.models import db, User
+
+        token = get_token_from_request()
+        if not token:
+            return jsonify({'success': False, 'message': 'NGO authentication required. Please sign in.'}), 401
+
+        payload = verify_auth_token(token)
+        if not payload or 'uid' not in payload:
+            return jsonify({'success': False, 'message': 'Session expired or invalid.'}), 401
+
+        user = db.session.get(User, payload['uid'])
+        if not user or user.status != 'active':
+            return jsonify({'success': False, 'message': 'Account not found or suspended.'}), 401
+
+        if user.role not in ('ngo', 'admin'):
+            return jsonify({'success': False, 'message': 'Access forbidden: NGO organization privileges required.'}), 403
+
+        g.current_user = user
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def set_auth_cookie(response, token, remember=True):
     """Set secure HttpOnly authentication cookie on response object."""
     max_age = 30 * 86400 if remember else 86400

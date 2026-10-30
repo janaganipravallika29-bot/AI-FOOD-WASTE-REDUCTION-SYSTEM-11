@@ -8,7 +8,38 @@
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    .auth-right { width: 520px; }
+    .auth-right { width: 540px; }
+    .account-type-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: var(--surface);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    .acc-type-btn {
+      background: transparent;
+      border: none;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition);
+    }
+    .acc-type-btn.active {
+      background: var(--surface2);
+      color: var(--accent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      border: 1px solid var(--border-hover);
+    }
     .strength-meter {
       display: flex; gap: 4px; margin-top: 8px; height: 4px; border-radius: 2px; overflow: hidden;
     }
@@ -36,23 +67,23 @@
     </div>
     <div class="auth-hero-icon">🚀</div>
     <h2>Start Your Journey</h2>
-    <p>Join smart households and businesses reducing food waste every day with the power of Artificial Intelligence.</p>
+    <p>Join smart households, restaurants, and registered NGOs reducing food waste and feeding communities with Artificial Intelligence.</p>
     <div style="margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
       <div style="background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
         <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:var(--accent);">30%</div>
         <div style="font-size:0.75rem;color:var(--text-muted);">Average waste reduction</div>
       </div>
       <div style="background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
-        <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:#fbbf24;">$500+</div>
-        <div style="font-size:0.75rem;color:var(--text-muted);">Saved annually avg</div>
+        <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:#fbbf24;">10,000+</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Meals rescued & fed</div>
       </div>
       <div style="background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
         <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:#60a5fa;">AI</div>
-        <div style="font-size:0.75rem;color:var(--text-muted);">Powered risk predictions</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Safety & donation match</div>
       </div>
       <div style="background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;">
-        <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:#a78bfa;">Free</div>
-        <div style="font-size:0.75rem;color:var(--text-muted);">Private & secure account</div>
+        <div style="font-size:1.8rem;font-weight:800;font-family:'Poppins',sans-serif;color:#a78bfa;">NGO</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Real-time dispatch portal</div>
       </div>
     </div>
   </div>
@@ -60,17 +91,27 @@
 
 <!-- Right Panel -->
 <div class="auth-right">
-  <div class="auth-form-box" style="max-width:440px;">
+  <div class="auth-form-box" style="max-width:480px;">
     <div class="logo-row">
       <div class="nav-logo-icon">🌱</div>
       <div>
         <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:0.95rem;">FoodWise AI</div>
-        <div style="font-size:0.72rem;color:var(--text-muted);">AI-Powered Food Management</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">AI-Powered Food Management & Rescue</div>
       </div>
     </div>
 
     <h1>Create Account</h1>
-    <p class="auth-sub">Fill in your details to get started with your private account</p>
+    <p class="auth-sub" id="signupSubtitle">Choose your account type and fill in your details to get started</p>
+
+    <!-- Account Type Selector -->
+    <div class="account-type-toggle">
+      <button type="button" class="acc-type-btn active" id="btnTypeDonor" onclick="selectAccountType('donor')">
+        <i class="fa-solid fa-hand-holding-heart"></i> Food Donor
+      </button>
+      <button type="button" class="acc-type-btn" id="btnTypeNgo" onclick="selectAccountType('ngo')">
+        <i class="fa-solid fa-building-ngo"></i> NGO Organization
+      </button>
+    </div>
 
     <div id="signupAlert" class="alert alert-danger hidden">
       <i class="fa-solid fa-circle-exclamation"></i>
@@ -78,21 +119,23 @@
     </div>
     <div id="signupSuccess" class="alert alert-success hidden">
       <i class="fa-solid fa-circle-check"></i>
-      <span id="signupSuccessMsg">Account created! Redirecting to dashboard...</span>
+      <span id="signupSuccessMsg">Account created! Redirecting...</span>
     </div>
 
     <form id="signupForm" novalidate>
+      <!-- Common Name Field -->
       <div class="form-group">
-        <label class="form-label" for="fullName">Full Name</label>
+        <label class="form-label" for="fullName" id="nameLabel">Full Name *</label>
         <div class="input-group">
-          <i class="fa-solid fa-user input-icon"></i>
+          <i class="fa-solid fa-user input-icon" id="nameIcon"></i>
           <input type="text" id="fullName" class="form-control" placeholder="John Doe" autocomplete="name" required>
         </div>
-        <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="nameError">Full name is required.</div>
+        <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="nameError">Name is required.</div>
       </div>
 
+      <!-- Common Email Field -->
       <div class="form-group">
-        <label class="form-label" for="signupEmail">Email Address</label>
+        <label class="form-label" for="signupEmail" id="emailLabel">Email Address *</label>
         <div class="input-group">
           <i class="fa-solid fa-envelope input-icon"></i>
           <input type="email" id="signupEmail" class="form-control" placeholder="you@example.com" autocomplete="email" required>
@@ -100,8 +143,71 @@
         <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="signupEmailError">Please enter a valid email address.</div>
       </div>
 
+      <!-- NGO-Specific Fields -->
+      <div id="ngoFields" class="hidden">
+        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label" for="ngoContactPerson">Contact Person *</label>
+            <div class="input-group">
+              <i class="fa-solid fa-id-badge input-icon"></i>
+              <input type="text" id="ngoContactPerson" class="form-control" placeholder="Director / Coordinator">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ngoPhone">Official Phone *</label>
+            <div class="input-group">
+              <i class="fa-solid fa-phone input-icon"></i>
+              <input type="tel" id="ngoPhone" class="form-control" placeholder="+91-9876543210">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label" for="ngoRegNum">Registration No.</label>
+            <div class="input-group">
+              <i class="fa-solid fa-hashtag input-icon"></i>
+              <input type="text" id="ngoRegNum" class="form-control" placeholder="NGO-REG-2026">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ngoCity">City / Coverage Area *</label>
+            <div class="input-group">
+              <i class="fa-solid fa-city input-icon"></i>
+              <input type="text" id="ngoCity" class="form-control" placeholder="e.g. Bangalore Central">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" for="ngoAddress">Shelter / Distribution Address *</label>
+          <div class="input-group">
+            <i class="fa-solid fa-location-dot input-icon"></i>
+            <input type="text" id="ngoAddress" class="form-control" placeholder="Street Address, Landmark, Pin code">
+          </div>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label" for="ngoCapacity">Daily Capacity (kg)</label>
+            <div class="input-group">
+              <i class="fa-solid fa-boxes-packing input-icon"></i>
+              <input type="number" id="ngoCapacity" class="form-control" placeholder="250" value="250" min="10">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ngoFoodTypes">Accepted Food Types</label>
+            <div class="input-group">
+              <i class="fa-solid fa-tags input-icon"></i>
+              <input type="text" id="ngoFoodTypes" class="form-control" placeholder="Cooked, Raw, Bakery" value="Cooked Meals, Fresh Veggies, Bakery">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Password Field -->
       <div class="form-group">
-        <label class="form-label" for="signupPassword">Password</label>
+        <label class="form-label" for="signupPassword">Password *</label>
         <div class="input-group">
           <i class="fa-solid fa-lock input-icon"></i>
           <input type="password" id="signupPassword" class="form-control" placeholder="At least 8 characters" autocomplete="new-password" required oninput="checkStrength(this.value)">
@@ -119,8 +225,9 @@
         <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="pwdError">Password must be at least 8 characters long with letters and numbers.</div>
       </div>
 
+      <!-- Confirm Password Field -->
       <div class="form-group">
-        <label class="form-label" for="confirmPassword">Confirm Password</label>
+        <label class="form-label" for="confirmPassword">Confirm Password *</label>
         <div class="input-group">
           <i class="fa-solid fa-lock input-icon"></i>
           <input type="password" id="confirmPassword" class="form-control" placeholder="Re-enter your password" autocomplete="new-password" required>
@@ -134,14 +241,14 @@
       <div class="form-group" style="margin-top:18px;">
         <label class="terms-check">
           <input type="checkbox" id="agreeTerms" checked required>
-          <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
+          <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Food Rescue Policy</a></span>
         </label>
         <div style="color:var(--danger);font-size:0.78rem;margin-top:4px;display:none;" id="termsError">You must accept the terms to create an account.</div>
       </div>
 
       <button type="submit" class="btn btn-primary w-full" id="signupBtn" style="justify-content:center;padding:14px;width:100%;">
         <i class="fa-solid fa-user-plus"></i>
-        <span id="signupBtnText">Create Account</span>
+        <span id="signupBtnText">Create Donor Account</span>
       </button>
     </form>
 
@@ -155,6 +262,40 @@
 <div id="toast-container"></div>
 <script src="../script.js"></script>
 <script>
+  let currentAccountType = 'donor';
+
+  function selectAccountType(type) {
+    currentAccountType = type;
+    const btnDonor = document.getElementById('btnTypeDonor');
+    const btnNgo = document.getElementById('btnTypeNgo');
+    const ngoFields = document.getElementById('ngoFields');
+    const nameLabel = document.getElementById('nameLabel');
+    const nameIcon = document.getElementById('nameIcon');
+    const fullName = document.getElementById('fullName');
+    const signupBtnText = document.getElementById('signupBtnText');
+    const subtitle = document.getElementById('signupSubtitle');
+
+    if (type === 'ngo') {
+      btnNgo.classList.add('active');
+      btnDonor.classList.remove('active');
+      ngoFields.classList.remove('hidden');
+      nameLabel.textContent = 'NGO / Organization Name *';
+      nameIcon.className = 'fa-solid fa-building-ngo input-icon';
+      fullName.placeholder = 'e.g. Feeding Hope Foundation';
+      signupBtnText.textContent = 'Register NGO Partner';
+      subtitle.textContent = 'Join our verified network of hunger relief organizations';
+    } else {
+      btnDonor.classList.add('active');
+      btnNgo.classList.remove('active');
+      ngoFields.classList.add('hidden');
+      nameLabel.textContent = 'Full Name *';
+      nameIcon.className = 'fa-solid fa-user input-icon';
+      fullName.placeholder = 'John Doe';
+      signupBtnText.textContent = 'Create Donor Account';
+      subtitle.textContent = 'Fill in your details to start reducing food waste & donating surplus';
+    }
+  }
+
   function togglePwd(id, iconId) {
     const input = document.getElementById(id);
     const icon  = document.getElementById(iconId);
@@ -206,6 +347,36 @@
     if (pwd !== confirm) show('confirmError'); else hide('confirmError');
     if (!terms) show('termsError'); else hide('termsError');
 
+    // Additional validation for NGO
+    let ngoPayload = {};
+    if (currentAccountType === 'ngo') {
+      const contactPerson = document.getElementById('ngoContactPerson').value.trim();
+      const phone = document.getElementById('ngoPhone').value.trim();
+      const address = document.getElementById('ngoAddress').value.trim();
+      const city = document.getElementById('ngoCity').value.trim();
+      const regNum = document.getElementById('ngoRegNum').value.trim();
+      const capacity = parseFloat(document.getElementById('ngoCapacity').value || '250');
+      const foodTypes = document.getElementById('ngoFoodTypes').value.trim();
+
+      if (!phone || !address || !city) {
+        showToast('Phone number, operating address, and city are required for NGO registration.', 'error');
+        valid = false;
+      }
+
+      ngoPayload = {
+        name,
+        email,
+        password: pwd,
+        phone,
+        address,
+        city,
+        reg_number: regNum,
+        contact_person: contactPerson || name,
+        accepted_food_types: foodTypes,
+        capacity_kg: capacity
+      };
+    }
+
     if (!valid) return;
 
     // Reset alert boxes
@@ -214,14 +385,17 @@
 
     const btn = document.getElementById('signupBtn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Creating account...';
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Registering account...';
 
     try {
-      const res = await fetch('/api/signup', {
+      const endpoint = currentAccountType === 'ngo' ? '/api/ngo/register' : '/api/signup';
+      const bodyData = currentAccountType === 'ngo' ? ngoPayload : { name, email, password: pwd };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name, email, password: pwd })
+        body: JSON.stringify(bodyData)
       });
 
       const data = await res.json();
@@ -231,29 +405,25 @@
         localStorage.setItem('fw_user', JSON.stringify(data.user));
 
         document.getElementById('signupSuccess').classList.remove('hidden');
-        document.getElementById('signupSuccessMsg').textContent = `Account created! Welcome, ${name}! Redirecting to dashboard...`;
+        const targetPage = currentAccountType === 'ngo' ? 'ngo_dashboard.html' : 'dashboard.html';
+        document.getElementById('signupSuccessMsg').textContent = `Account created successfully! Welcome, ${name}! Redirecting...`;
         showToast(`Welcome to FoodWise AI, ${name}!`, 'success');
 
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 1200);
+          window.location.href = targetPage;
+        }, 1100);
       } else {
         document.getElementById('signupAlertMsg').textContent = data.message || 'Registration could not be completed.';
         document.getElementById('signupAlert').classList.remove('hidden');
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Account';
+        btn.innerHTML = currentAccountType === 'ngo' ? '<i class="fa-solid fa-building-ngo"></i> Register NGO Partner' : '<i class="fa-solid fa-user-plus"></i> Create Donor Account';
       }
     } catch (err) {
       console.error('Signup error:', err);
-      const isLiveServer = window.location.port !== '5000' && window.location.port !== '';
-      if (isLiveServer) {
-        document.getElementById('signupAlertMsg').textContent = 'Backend not running at http://127.0.0.1:5000. Start it in terminal via: python app.py';
-      } else {
-        document.getElementById('signupAlertMsg').textContent = 'Unable to connect to server. Please try again later.';
-      }
+      document.getElementById('signupAlertMsg').textContent = 'Unable to connect to server. Please try again later.';
       document.getElementById('signupAlert').classList.remove('hidden');
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Account';
+      btn.innerHTML = currentAccountType === 'ngo' ? '<i class="fa-solid fa-building-ngo"></i> Register NGO Partner' : '<i class="fa-solid fa-user-plus"></i> Create Donor Account';
     }
   });
 </script>
