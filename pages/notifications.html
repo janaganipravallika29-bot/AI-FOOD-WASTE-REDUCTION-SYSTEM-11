@@ -65,34 +65,8 @@
 
       <div class="card" style="padding:0;overflow:hidden;">
         <div id="notifList">
-          <div class="notif-item unread">
-            <div class="notif-icon" style="background:rgba(239,68,68,0.15);color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <div style="flex:1;">
-              <div class="notif-title">Milk Expires Tomorrow!</div>
-              <div class="notif-msg">Your 2L Milk item is set to expire on Aug 13. Please consume or freeze it soon.</div>
-              <div class="notif-time">2 hours ago</div>
-            </div>
-            <span class="badge badge-danger">High Alert</span>
-          </div>
-
-          <div class="notif-item unread">
-            <div class="notif-icon" style="background:rgba(245,158,11,0.15);color:var(--warning);"><i class="fa-solid fa-clock"></i></div>
-            <div style="flex:1;">
-              <div class="notif-title">Tomatoes Approaching Expiry</div>
-              <div class="notif-msg">3 food items are approaching their expiry dates within the next 3 days.</div>
-              <div class="notif-time">5 hours ago</div>
-            </div>
-            <span class="badge badge-warning">Expiry</span>
-          </div>
-
-          <div class="notif-item unread">
-            <div class="notif-icon" style="background:rgba(34,197,94,0.15);color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
-            <div style="flex:1;">
-              <div class="notif-title">Great Job! Waste Reduced by 12%</div>
-              <div class="notif-msg">Your waste reduction score improved from 72 to 78 this week. Keep it up!</div>
-              <div class="notif-time">1 day ago</div>
-            </div>
-            <span class="badge badge-success">Milestone</span>
+          <div style="text-align:center;padding:36px;color:var(--text-muted);">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Loading real-time alerts...
           </div>
         </div>
       </div>
@@ -105,26 +79,98 @@
 <script>
   (async function() {
     const authed = await checkAuth({ redirectToLogin: true });
-    if (authed && typeof FoodDB !== "undefined" && FoodDB.syncFoodsWithBackend) {
-      await FoodDB.syncFoodsWithBackend();
+    if (authed) {
+      loadNotifications();
     }
   })();
-const defaultUser = { name: "Pravallika Janagani", email: "pravallikajanagani4@gmail.com" };
-const user = JSON.parse(localStorage.getItem('fw_user') || JSON.stringify(defaultUser));
-const initials = (user.name || 'PJ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-document.getElementById('userName').textContent = user.name;
-document.getElementById('userAvatar').textContent = initials;
-document.getElementById('topUserAvatar').textContent = initials;
 
-function markAllRead() {
-  document.querySelectorAll('.notif-item').forEach(el => el.classList.remove('unread'));
-  showToast('All notifications marked as read.', 'info');
-}
+  const user = getCurrentUser() || { name: "User" };
+  const initials = (user.name || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'U';
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('topUserAvatar').textContent = initials;
 
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebarOverlay').classList.toggle('open');
-}
+  async function loadNotifications() {
+    try {
+      const res = await fetch('/api/notifications');
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.notifications)) {
+        renderNotifications(data.notifications);
+      }
+    } catch (e) {
+      console.warn('Failed to load notifications:', e);
+    }
+  }
+
+  function renderNotifications(notifs) {
+    const container = document.getElementById('notifList');
+    if (!notifs || notifs.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:48px 20px;color:var(--text-muted);">
+          <i class="fa-solid fa-bell-slash fa-2x" style="margin-bottom:12px;color:var(--text-dim);"></i>
+          <h4>No alerts right now</h4>
+          <p style="font-size:0.85rem;">All your food items and donation activities are up to date.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const typeIcons = {
+      'donation_request': { icon: 'fa-solid fa-hand-holding-heart', bg: 'rgba(34,197,94,0.15)', color: 'var(--success)' },
+      'donation_accepted': { icon: 'fa-solid fa-circle-check', bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+      'donation_rejected': { icon: 'fa-solid fa-triangle-exclamation', bg: 'rgba(239,68,68,0.15)', color: 'var(--danger)' },
+      'donation_rerouted': { icon: 'fa-solid fa-route', bg: 'rgba(245,158,11,0.15)', color: 'var(--warning)' },
+      'pickup_scheduled': { icon: 'fa-solid fa-truck-fast', bg: 'rgba(139,92,246,0.15)', color: '#c4b5fd' },
+      'donation_completed': { icon: 'fa-solid fa-trophy', bg: 'rgba(34,197,94,0.15)', color: 'var(--accent)' },
+      'system': { icon: 'fa-solid fa-info', bg: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)' }
+    };
+
+    container.innerHTML = notifs.map(n => {
+      const meta = typeIcons[n.type] || typeIcons.system;
+      const unreadClass = !n.is_read ? 'unread' : '';
+      const timeStr = n.created_at ? new Date(n.created_at).toLocaleString() : 'Just now';
+
+      return `
+        <div class="notif-item ${unreadClass}">
+          <div class="notif-icon" style="background:${meta.bg};color:${meta.color};">
+            <i class="${meta.icon}"></i>
+          </div>
+          <div style="flex:1;">
+            <div class="notif-title">${escapeHtml(n.title)}</div>
+            <div class="notif-msg">${escapeHtml(n.message)}</div>
+            <div class="notif-time">${timeStr}</div>
+          </div>
+          ${!n.is_read ? '<span class="badge badge-info" style="font-size:0.7rem;">New</span>' : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function markAllRead() {
+    try {
+      const res = await fetch('/api/notifications/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        document.querySelectorAll('.notif-item').forEach(el => el.classList.remove('unread'));
+        showToast('All notifications marked as read.', 'info');
+      }
+    } catch (e) {
+      showToast('Error updating notifications.', 'error');
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  }
 </script>
 </body>
 </html>

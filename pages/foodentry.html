@@ -467,11 +467,19 @@
       if (res.ok && data.success) {
         savedFoodRecord = data.food;
         const ai = data.ai_prediction;
+        const autoDonation = data.auto_donation;
 
-        // Render AI result and immediate Donation action
-        renderAiDonationDecision(savedFoodRecord, ai);
+        // Render AI result and automatic NGO donation dispatch
+        renderAiDonationDecision(savedFoodRecord, ai, autoDonation);
 
-        showToast('Food analyzed successfully by AI!', 'success');
+        if (autoDonation && autoDonation.matched) {
+          showToast(`Successfully matched and sent to ${autoDonation.ngo.name}!`, 'success');
+        } else if (autoDonation && autoDonation.status === 'available_for_donation') {
+          showToast('No suitable NGO available right now. Saved as Available for Donation.', 'warning');
+        } else {
+          showToast('Food analyzed: Unsafe for donation.', 'info');
+        }
+
         document.getElementById('aiPredictionResultSection').scrollIntoView({ behavior: 'smooth' });
       } else {
         showToast(data.message || 'Failed to submit food.', 'error');
@@ -485,12 +493,13 @@
   });
 
   // Display the 3 distinct cases: SAFE TO DONATE, USE SOON, UNSAFE TO DONATE
-  function renderAiDonationDecision(food, ai) {
+  // Automatic NGO matching & dispatch workflow
+  function renderAiDonationDecision(food, ai, autoDonation) {
     const container = document.getElementById('aiPredictionResultSection');
     container.classList.remove('hidden');
 
     let safetyBadgeHtml = '';
-    let actionButtonHtml = '';
+    let autoDispatchCardHtml = '';
     let cardBorderColor = 'var(--border)';
 
     if (ai.donation_suitable === 'safe') {
@@ -502,11 +511,6 @@
           <span style="font-size:0.85rem;color:var(--accent);font-weight:600;">High Quality • Safe Shelf-Life (${ai.days_left} Days Remaining)</span>
         </div>
       `;
-      actionButtonHtml = `
-        <button type="button" class="btn btn-primary" onclick="openNgoSelectorModal()" style="padding:14px 28px;font-size:1rem;box-shadow:var(--shadow-glow);">
-          <i class="fa-solid fa-hand-holding-heart"></i> Donate to NGO Now
-        </button>
-      `;
     } else if (ai.donation_suitable === 'use_soon') {
       // CASE 2: USE SOON (Orange warning)
       cardBorderColor = 'rgba(245, 158, 11, 0.5)';
@@ -515,11 +519,6 @@
           <span class="safety-pill use-soon"><i class="fa-solid fa-triangle-exclamation"></i> USE SOON</span>
           <span style="font-size:0.85rem;color:#fbbf24;font-weight:600;">Urgent Rescue Window (${ai.days_left} Day(s) Left)</span>
         </div>
-      `;
-      actionButtonHtml = `
-        <button type="button" class="btn btn-primary" onclick="openNgoSelectorModal()" style="padding:14px 28px;background:linear-gradient(135deg,#d97706,#f59e0b);border-color:#fbbf24;">
-          <i class="fa-solid fa-bolt"></i> Request Urgent NGO Pickup (Safe for Quick Meal)
-        </button>
       `;
     } else {
       // CASE 3: UNSAFE TO DONATE (Red warning)
@@ -530,10 +529,80 @@
           <span style="font-size:0.85rem;color:#f87171;font-weight:600;">Expired or High Spoilage Probability</span>
         </div>
       `;
-      actionButtonHtml = `
-        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:var(--radius-md);padding:12px 18px;color:#fca5a5;font-size:0.85rem;">
-          <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>
-          <strong>Donation Disabled:</strong> For the health and safety of shelter beneficiaries, food past expiration or with critical spoilage risk cannot be dispatched to NGOs. Recommended action: Safely compost or dispose.
+    }
+
+    // Determine Automatic Donation Card
+    if (autoDonation && autoDonation.matched) {
+      // Automatically matched and sent to verified NGO
+      autoDispatchCardHtml = `
+        <div style="background:rgba(22,163,74,0.12);border:1px solid rgba(74,222,128,0.35);border-radius:var(--radius-md);padding:18px 20px;margin-top:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="badge badge-success" style="font-size:0.82rem;padding:6px 12px;">
+                <i class="fa-solid fa-bolt"></i> AUTOMATICALLY MATCHED & DISPATCHED
+              </span>
+              <span style="font-weight:700;color:var(--text-primary);font-size:1.05rem;">Donation #${autoDonation.donation_id}</span>
+            </div>
+            <span class="badge badge-warning" style="font-size:0.8rem;">
+              <i class="fa-solid fa-clock"></i> Status: Pending NGO Confirmation
+            </span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:12px;font-size:0.88rem;color:var(--text-secondary);margin-bottom:16px;">
+            <div><i class="fa-solid fa-building-ngo" style="color:var(--accent);width:18px;"></i> <strong>Assigned NGO:</strong> ${escapeHtml(autoDonation.ngo.name)}</div>
+            <div><i class="fa-solid fa-location-dot" style="color:var(--accent);width:18px;"></i> <strong>Location:</strong> ${escapeHtml(autoDonation.ngo.city || 'Citywide')}</div>
+            <div><i class="fa-solid fa-phone" style="color:var(--accent);width:18px;"></i> <strong>Phone:</strong> ${escapeHtml(autoDonation.ngo.phone || 'Available on dispatch')}</div>
+            <div><i class="fa-solid fa-boxes-packing" style="color:var(--accent);width:18px;"></i> <strong>Capacity:</strong> ${autoDonation.ngo.capacity_kg || 250} kg/day</div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;">
+            <div style="font-size:0.82rem;color:var(--text-dim);">
+              <i class="fa-solid fa-circle-check" style="color:var(--accent);margin-right:4px;"></i>
+              Donation request automatically sent based on proximity, food category, and storage capacity.
+            </div>
+            <a href="donation.html?id=${autoDonation.donation_id}" class="btn btn-primary btn-sm" style="box-shadow:var(--shadow-glow);">
+              <i class="fa-solid fa-truck-fast"></i> Track Live Donation Status
+            </a>
+          </div>
+        </div>
+      `;
+    } else if (autoDonation && autoDonation.status === 'available_for_donation') {
+      // Safe, but no NGO available right now
+      autoDispatchCardHtml = `
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(251,191,36,0.35);border-radius:var(--radius-md);padding:18px 20px;margin-top:18px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <span class="badge badge-warning" style="font-size:0.85rem;padding:6px 12px;">
+              <i class="fa-solid fa-triangle-exclamation"></i> NO SUITABLE NGO AVAILABLE RIGHT NOW
+            </span>
+          </div>
+          <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;">
+            All registered partner NGOs in your locality are currently at maximum daily capacity. Your food has been safely logged in the system and saved as <strong>Available for Donation</strong>.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="retryNgoMatch(${food.id})">
+              <i class="fa-solid fa-rotate"></i> Retry Automated Match Now
+            </button>
+            <a href="donation.html" class="btn btn-outline btn-sm">
+              <i class="fa-solid fa-hand-holding-heart"></i> View Donations Dashboard
+            </a>
+          </div>
+        </div>
+      `;
+    } else {
+      // Unsafe to donate
+      autoDispatchCardHtml = `
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(248,113,113,0.35);border-radius:var(--radius-md);padding:18px 20px;margin-top:18px;color:#fca5a5;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <span class="badge badge-danger" style="font-size:0.85rem;padding:6px 12px;">
+              <i class="fa-solid fa-ban"></i> DONATION DISABLED
+            </span>
+          </div>
+          <p style="font-size:0.88rem;line-height:1.6;margin-bottom:8px;">
+            <strong>Safety Policy Enforced:</strong> ${escapeHtml(ai.donation_reason || 'Food item has expired or reached high bacterial spoilage risk. For health and food safety standards, expired food cannot be donated.')}
+          </p>
+          <p style="font-size:0.8rem;color:var(--text-dim);margin:0;">
+            <i class="fa-solid fa-shield-halved"></i> AI predictions are decision support. We do not allow unsafe or expired food donations.
+          </p>
         </div>
       `;
     }
@@ -563,19 +632,42 @@
           </div>
         </div>
 
-        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;margin-bottom:20px;">
+        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;margin-bottom:10px;">
           <i class="fa-solid fa-robot" style="color:var(--primary);margin-right:6px;"></i>
           ${escapeHtml(ai.donation_reason)}
         </p>
 
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
-          <div>${actionButtonHtml}</div>
-          <a href="donation.html" class="btn btn-outline btn-sm">
-            <i class="fa-solid fa-list-check"></i> View All My Donations
-          </a>
-        </div>
+        ${autoDispatchCardHtml}
       </div>
     `;
+  }
+
+  async function retryNgoMatch(foodId) {
+    showToast('Searching for available verified NGOs...', 'info');
+    try {
+      const res = await fetch(`/api/donations/retry-match/${foodId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + getAuthToken()
+        },
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.donation) {
+        showToast(data.message, 'success');
+        renderAiDonationDecision(
+          savedFoodRecord,
+          { donation_suitable: 'safe', score: 20, days_left: 3, confidence: 0.92, donation_reason: 'Quality verified.' },
+          { matched: true, donation_id: data.donation.id, ngo: data.ngo }
+        );
+      } else {
+        showToast(data.message || 'No suitable NGO available yet.', 'warning');
+      }
+    } catch (e) {
+      showToast('Network error while retrying match.', 'error');
+    }
+  }
   }
 
   // NGO Selector Modal

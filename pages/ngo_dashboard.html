@@ -551,10 +551,10 @@
         actionButtons = `
           <div style="display:flex;gap:10px;">
             <button class="btn btn-primary btn-sm" onclick="openPickupModal(${d.id}, '${escapeJs(food.name || 'Food')}', '${escapeJs(food.location || donor.address || 'Address on file')}')">
-              <i class="fa-solid fa-check"></i> Accept & Schedule Pickup
+              <i class="fa-solid fa-check"></i> Accept Donation
             </button>
             <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:rgba(239,68,68,0.4);" onclick="openRejectModal(${d.id})">
-              <i class="fa-solid fa-xmark"></i> Decline
+              <i class="fa-solid fa-xmark"></i> Reject Donation
             </button>
           </div>
         `;
@@ -782,7 +782,11 @@
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast('Donation request marked as declined.', 'info');
+        if (data.next_ngo && data.rerouted_donation) {
+          showToast(`Donation declined. FoodWise AI automatically rerouted request to ${data.next_ngo.name} (Donation #${data.rerouted_donation.id}).`, 'info');
+        } else {
+          showToast(data.message || 'Donation request marked as declined.', 'info');
+        }
         closeRejectModal();
         loadNgoData();
       } else {
@@ -837,3 +841,4 @@
 </script>
 </body>
 </html>
+

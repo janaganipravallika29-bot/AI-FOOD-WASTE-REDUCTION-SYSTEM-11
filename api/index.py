@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # Load local environment if .env exists
 load_dotenv()
 
-from backend.models import db, User, NGO, Food, Donation, PickupDetail, PredictionLog
+from backend.models import db, User, NGO, Food, Donation, PickupDetail, PredictionLog, Notification
 from backend.database import configure_database, seed_initial_data
 from backend.auth_utils import (
     generate_auth_token, verify_auth_token, generate_reset_token, verify_reset_token,
@@ -567,6 +567,152 @@ def register_ngo():
 
 
 # ============================================================================
+# AUTOMATIC NGO MATCHING & DISPATCH ENGINE
+# ============================================================================
+
+def find_best_matching_ngo(food_item, donor=None, excluded_ngo_ids=None):
+    """
+    Automatic NGO Matching Algorithm.
+    Scores registered, verified NGOs based on:
+    1. Quantity capacity vs active commitments (0-40 pts)
+    2. Category acceptance match (0-35 pts)
+    3. Location proximity / citywide coverage (0-25 pts)
+    4. Active queue availability (0-10 pts)
+    Returns best matching NGO or None if no eligible NGO is available.
+    """
+    if excluded_ngo_ids is None:
+        excluded_ngo_ids = set()
+    else:
+        excluded_ngo_ids = set(excluded_ngo_ids)
+
+    query = NGO.query.filter_by(is_verified=True)
+    if excluded_ngo_ids:
+        query = query.filter(~NGO.id.in_(excluded_ngo_ids))
+    candidates = query.all()
+
+    if not candidates:
+        return None
+
+    donor_loc = ((food_item.location or '') + ' ' + ((donor.address or '') if donor else '')).lower()
+    food_cat = (food_item.category or 'other').lower()
+    food_qty = float(food_item.quantity or 1.0)
+
+    scored_ngos = []
+
+    for ngo in candidates:
+        score = 0
+
+        # --- A. Capacity Evaluation (0-40 pts) ---
+        active_donations = Donation.query.filter(
+            Donation.ngo_id == ngo.id,
+            Donation.status.in_(['Accepted', 'Pickup Scheduled', 'Collected', 'Delivered'])
+        ).all()
+        current_load = sum(d.food_item.quantity for d in active_donations if d.food_item)
+        remaining_capacity = max(0.0, float(ngo.capacity_kg or 150.0) - current_load)
+
+        if remaining_capacity >= food_qty:
+            score += 40
+        elif float(ngo.capacity_kg or 150.0) >= food_qty:
+            score += 20
+        else:
+            # If food item exceeds daily capacity, skip
+            continue
+
+        # --- B. Category Match (0-35 pts) ---
+        accepted_types = (ngo.accepted_food_types or '').lower()
+        if 'all' in accepted_types:
+            score += 35
+        elif food_cat in accepted_types:
+            score += 35
+        elif food_cat == 'cooked' and any(k in accepted_types for k in ('cooked', 'meal', 'catering', 'hot')):
+            score += 35
+        elif food_cat in ('vegetables', 'fruits') and any(k in accepted_types for k in ('veggie', 'raw', 'produce', 'fruit')):
+            score += 35
+        elif food_cat == 'bakery' and any(k in accepted_types for k in ('bake', 'bread')):
+            score += 35
+        elif food_cat == 'dairy' and any(k in accepted_types for k in ('dairy', 'milk')):
+            score += 35
+        elif food_cat == 'packaged' and any(k in accepted_types for k in ('package', 'grocer', 'canned')):
+            score += 35
+        elif food_cat == 'grains' and any(k in accepted_types for k in ('grain', 'rice', 'pulse')):
+            score += 35
+        else:
+            score += 15
+
+        # --- C. Location Proximity (0-25 pts) ---
+        ngo_loc = f"{ngo.city} {ngo.address}".lower()
+        donor_words = [w for w in re.split(r'[\s,.-]+', donor_loc) if len(w) > 3]
+        matched_loc_words = [w for w in donor_words if w in ngo_loc]
+
+        if matched_loc_words:
+            score += 25
+        elif 'citywide' in ngo.city.lower() or 'nationwide' in (ngo.description or '').lower():
+            score += 18
+        else:
+            score += 8
+
+        # --- D. Availability (0-10 pts) ---
+        pending_count = Donation.query.filter_by(ngo_id=ngo.id, status='Pending').count()
+        if pending_count == 0:
+            score += 10
+        elif pending_count <= 2:
+            score += 6
+        else:
+            score += 2
+
+        scored_ngos.append((score, ngo))
+
+    if not scored_ngos:
+        return None
+
+    scored_ngos.sort(key=lambda x: x[0], reverse=True)
+    best_score, best_ngo = scored_ngos[0]
+
+    if best_score < 25:
+        return None
+
+    return best_ngo
+
+
+def dispatch_donation_to_ngo(food_item, donor, ngo, notes='', trigger='Automatic AI matching'):
+    """
+    Creates donation record, links food and NGO, updates statuses, and creates real-time notifications.
+    """
+    donation = Donation(
+        donor_id=donor.id,
+        food_id=food_item.id,
+        ngo_id=ngo.id,
+        status='Pending',
+        donor_notes=notes or f'Automatically matched by FoodWise AI based on proximity ({ngo.city}) and capacity.'
+    )
+    food_item.donation_status = 'pending'
+    food_item.status = 'donated'
+    db.session.add(donation)
+    db.session.flush()
+
+    # Notify NGO
+    if ngo.user_id:
+        db.session.add(Notification(
+            user_id=ngo.user_id,
+            donation_id=donation.id,
+            title='New Surplus Food Rescue Request',
+            message=f"New surplus food donation from {donor.name}: {food_item.quantity} {food_item.unit} of {food_item.food_name}. AI Safety: {(food_item.donation_suitable or 'safe').upper()}.",
+            type='donation_request'
+        ))
+
+    # Notify Donor
+    db.session.add(Notification(
+        user_id=donor.id,
+        donation_id=donation.id,
+        title='Donation Auto-Dispatched to NGO',
+        message=f"Your food item '{food_item.food_name}' was automatically matched and dispatched to {ngo.name} (Donation #{donation.id}).",
+        type='donation_request'
+    ))
+
+    return donation
+
+
+# ============================================================================
 # DONATION WORKFLOW (DONOR -> NGO)
 # ============================================================================
 
@@ -606,8 +752,8 @@ def handle_donations():
     ngo_id = data.get('ngo_id')
     donor_notes = data.get('donor_notes') or ''
 
-    if not food_id or not ngo_id:
-        return jsonify({'success': False, 'message': 'food_id and ngo_id are required to create a donation.'}), 400
+    if not food_id:
+        return jsonify({'success': False, 'message': 'food_id is required to create a donation.'}), 400
 
     food = db.session.get(Food, food_id)
     if not food:
@@ -617,10 +763,6 @@ def handle_donations():
     if food.user_id != user.id and user.role not in ('admin', 'demo'):
         return jsonify({'success': False, 'message': 'You can only donate food items from your own inventory.'}), 403
 
-    ngo = db.session.get(NGO, ngo_id)
-    if not ngo or not ngo.is_verified:
-        return jsonify({'success': False, 'message': 'Selected NGO organization was not found or is not currently verified.'}), 404
-
     # AI Safety & Expiry Validation
     if food.donation_suitable == 'unsafe' or food.status == 'expired':
         return jsonify({
@@ -628,24 +770,45 @@ def handle_donations():
             'message': 'Cannot donate this food item. AI food safety analysis marked this item as NOT SAFE TO DONATE due to expiration or critical spoilage risk.'
         }), 400
 
-    try:
-        donation = Donation(
-            donor_id=user.id,
-            food_id=food.id,
-            ngo_id=ngo.id,
-            status='Pending',
-            donor_notes=donor_notes
-        )
-        food.donation_status = 'pending'
-        food.status = 'donated'
+    # Auto-match NGO if not explicitly provided
+    if ngo_id:
+        ngo = db.session.get(NGO, ngo_id)
+        if not ngo or not ngo.is_verified:
+            return jsonify({'success': False, 'message': 'Selected NGO organization was not found or is not currently verified.'}), 404
+    else:
+        past_ngo_ids = {d.ngo_id for d in Donation.query.filter_by(food_id=food.id).all()}
+        ngo = find_best_matching_ngo(food, user, excluded_ngo_ids=past_ngo_ids)
+        if not ngo:
+            food.donation_status = 'available_for_donation'
+            db.session.commit()
+            return jsonify({
+                'success': False,
+                'status': 'available_for_donation',
+                'message': 'NO SUITABLE NGO AVAILABLE RIGHT NOW. Saved as Available for Donation.'
+            }), 200
 
-        db.session.add(donation)
+    # Prevent duplicate active donation for same food and NGO
+    existing_active = Donation.query.filter(
+        Donation.food_id == food.id,
+        Donation.ngo_id == ngo.id,
+        Donation.status.in_(['Pending', 'Accepted', 'Pickup Scheduled', 'Collected'])
+    ).first()
+    if existing_active:
+        return jsonify({
+            'success': False,
+            'message': f"A donation request for this item is already active with {ngo.name} (Donation #{existing_active.id}).",
+            'donation': existing_active.to_dict()
+        }), 409
+
+    try:
+        donation = dispatch_donation_to_ngo(food, user, ngo, notes=donor_notes)
         db.session.commit()
 
         return jsonify({
             'success': True,
             'message': f"Food donation request successfully sent to {ngo.name}! Track pickup progress on your dashboard.",
-            'donation': donation.to_dict()
+            'donation': donation.to_dict(),
+            'ngo': ngo.to_dict()
         }), 201
 
     except Exception as e:
@@ -749,20 +912,83 @@ def update_donation_status(donation_id):
     if not donation:
         return jsonify({'success': False, 'message': 'Donation record not found.'}), 404
 
-    donation.status = new_status
-    if ngo_notes:
-        donation.ngo_notes = ngo_notes
-    if rejection_reason and new_status == 'Rejected':
-        donation.rejection_reason = rejection_reason
+    rerouted_donation = None
+    next_ngo_data = None
 
-    # Synchronize food status
-    if donation.food_item:
-        if new_status == 'Rejected':
-            donation.food_item.donation_status = 'rejected'
-        elif new_status == 'Completed':
+    if new_status == 'Rejected':
+        donation.status = 'Rejected'
+        if rejection_reason:
+            donation.rejection_reason = rejection_reason
+
+        # Notify donor of rejection
+        db.session.add(Notification(
+            user_id=donation.donor_id,
+            donation_id=donation.id,
+            title='Donation Request Declined',
+            message=f"{donation.target_ngo.name if donation.target_ngo else 'NGO Partner'} could not accept donation #{donation.id}: {rejection_reason or 'Daily capacity reached'}. Searching for next eligible NGO...",
+            type='donation_rejected'
+        ))
+
+        # Automatically search for next suitable verified NGO
+        past_ngo_ids = {d.ngo_id for d in Donation.query.filter_by(food_id=donation.food_id).all()}
+        next_ngo = find_best_matching_ngo(donation.food_item, donation.donor, excluded_ngo_ids=past_ngo_ids)
+
+        if next_ngo:
+            rerouted_donation = dispatch_donation_to_ngo(
+                donation.food_item,
+                donation.donor,
+                next_ngo,
+                notes=f"Auto-rerouted to {next_ngo.name} after previous NGO declined: {rejection_reason or 'Capacity reached'}"
+            )
+            donation.food_item.donation_status = 'pending'
+            next_ngo_data = next_ngo.to_dict()
+
+            # Notify donor about automatic rerouting
+            db.session.add(Notification(
+                user_id=donation.donor_id,
+                donation_id=rerouted_donation.id,
+                title='Donation Auto-Rerouted to Next NGO',
+                message=f"FoodWise AI automatically rerouted your food '{donation.food_item.food_name}' to {next_ngo.name} (Donation #{rerouted_donation.id}).",
+                type='donation_rerouted'
+            ))
+        else:
+            donation.food_item.donation_status = 'available_for_donation'
+            db.session.add(Notification(
+                user_id=donation.donor_id,
+                donation_id=donation.id,
+                title='No Further Matching NGOs Available',
+                message=f"All partner NGOs in your area are currently at maximum capacity. Your food remains saved as Available for Donation.",
+                type='system'
+            ))
+
+    elif new_status == 'Accepted':
+        donation.status = 'Accepted'
+        if donation.food_item:
+            donation.food_item.donation_status = 'accepted'
+        db.session.add(Notification(
+            user_id=donation.donor_id,
+            donation_id=donation.id,
+            title='Donation Accepted by NGO!',
+            message=f"{donation.target_ngo.name if donation.target_ngo else 'NGO'} accepted your donation #{donation.id}! Volunteer pickup will be scheduled shortly.",
+            type='donation_accepted'
+        ))
+
+    elif new_status == 'Completed':
+        donation.status = 'Completed'
+        if donation.food_item:
             donation.food_item.donation_status = 'completed'
             donation.food_item.status = 'consumed'
-        else:
+        db.session.add(Notification(
+            user_id=donation.donor_id,
+            donation_id=donation.id,
+            title='Food Rescue Mission Completed!',
+            message=f"Your donated food #{donation.id} has been delivered and distributed by {donation.target_ngo.name if donation.target_ngo else 'NGO'}. Thank you for reducing waste!",
+            type='donation_completed'
+        ))
+
+    else:
+        donation.status = new_status
+        if donation.food_item:
             donation.food_item.donation_status = new_status.lower().replace(' ', '_')
 
     # If pickup info is supplied with status update
@@ -787,10 +1013,18 @@ def update_donation_status(donation_id):
 
     try:
         db.session.commit()
+        msg = f"Donation status updated to '{new_status}'."
+        if new_status == 'Rejected' and next_ngo_data:
+            msg = f"Donation rejected. FoodWise AI automatically rerouted request to {next_ngo_data['name']} (Donation #{rerouted_donation.id})."
+        elif new_status == 'Rejected':
+            msg = "Donation rejected. No other matching NGOs currently open; food saved as Available for Donation."
+
         return jsonify({
             'success': True,
-            'message': f"Donation status updated to '{new_status}'. Donor dashboard updated in real-time.",
-            'donation': donation.to_dict()
+            'message': msg,
+            'donation': donation.to_dict(),
+            'rerouted_donation': rerouted_donation.to_dict() if rerouted_donation else None,
+            'next_ngo': next_ngo_data
         })
     except Exception as e:
         db.session.rollback()
@@ -833,6 +1067,15 @@ def schedule_pickup(donation_id):
     donation.status = 'Pickup Scheduled'
     if donation.food_item:
         donation.food_item.donation_status = 'pickup_scheduled'
+
+    # Notify donor about pickup schedule
+    db.session.add(Notification(
+        user_id=donation.donor_id,
+        donation_id=donation.id,
+        title='Food Pickup Scheduled by NGO',
+        message=f"{donation.target_ngo.name if donation.target_ngo else 'Assigned NGO'} assigned volunteer {agent_name} ({agent_phone}) for pickup at {scheduled_time}.",
+        type='pickup_scheduled'
+    ))
 
     try:
         db.session.commit()
@@ -917,13 +1160,51 @@ def user_foods():
             notes=notes
         )
         db.session.add(new_food)
+        db.session.flush()
+
+        # Automatic NGO Matching & Dispatch
+        auto_donation = None
+
+        if ai_result['donation_suitable'] in ('safe', 'use_soon'):
+            matched_ngo = find_best_matching_ngo(new_food, user)
+            if matched_ngo:
+                donation = dispatch_donation_to_ngo(new_food, user, matched_ngo)
+                auto_donation = {
+                    'matched': True,
+                    'status': 'dispatched',
+                    'donation_id': donation.id,
+                    'ngo': matched_ngo.to_dict(),
+                    'message': f"Automatically matched and dispatched to {matched_ngo.name}!"
+                }
+            else:
+                new_food.donation_status = 'available_for_donation'
+                auto_donation = {
+                    'matched': False,
+                    'status': 'available_for_donation',
+                    'message': 'NO SUITABLE NGO AVAILABLE RIGHT NOW. Saved as Available for Donation.'
+                }
+        else:
+            new_food.donation_status = 'unsafe'
+            auto_donation = {
+                'matched': False,
+                'blocked': True,
+                'message': 'NOT SAFE TO DONATE: ' + ai_result.get('donation_reason', 'Perishable food risk detected.')
+            }
+
         db.session.commit()
+
+        success_msg = f"{food_name} analyzed successfully!"
+        if auto_donation and auto_donation.get('matched'):
+            success_msg = f"{food_name} analyzed! Automatically matched and sent to {auto_donation['ngo']['name']} (Donation #{auto_donation['donation_id']})."
+        elif auto_donation and auto_donation.get('status') == 'available_for_donation':
+            success_msg = f"{food_name} analyzed! No suitable NGO available right now; saved as Available for Donation."
 
         return jsonify({
             'success': True,
-            'message': f'{food_name} logged and analyzed successfully!',
+            'message': success_msg,
             'food': new_food.to_dict(),
-            'ai_prediction': ai_result
+            'ai_prediction': ai_result,
+            'auto_donation': auto_donation
         }), 201
 
     except Exception as e:
@@ -1236,6 +1517,92 @@ def admin_get_stats():
             'completed_donations': completed_donations
         }
     })
+
+
+# ============================================================================
+# NOTIFICATIONS & RETRY MATCHING ENDPOINTS
+# ============================================================================
+
+@app.route('/api/notifications', methods=['GET', 'OPTIONS'])
+@login_required
+def get_user_notifications():
+    """Retrieve in-app notifications for authenticated user (donor or NGO)."""
+    if request.method == 'OPTIONS':
+        return make_response('', 204)
+
+    user = g.current_user
+    notifs = Notification.query.filter_by(user_id=user.id).order_by(Notification.created_at.desc()).limit(40).all()
+    unread_count = sum(1 for n in notifs if not n.is_read)
+
+    return jsonify({
+        'success': True,
+        'unread_count': unread_count,
+        'count': len(notifs),
+        'notifications': [n.to_dict() for n in notifs]
+    })
+
+
+@app.route('/api/notifications/read', methods=['POST', 'OPTIONS'])
+@login_required
+def mark_notifications_read():
+    """Mark all or a specific notification as read."""
+    if request.method == 'OPTIONS':
+        return make_response('', 204)
+
+    user = g.current_user
+    data = request.get_json(silent=True) or {}
+    notif_id = data.get('notification_id')
+
+    if notif_id:
+        notif = Notification.query.filter_by(id=notif_id, user_id=user.id).first()
+        if notif:
+            notif.is_read = True
+    else:
+        Notification.query.filter_by(user_id=user.id, is_read=False).update({'is_read': True})
+
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Notifications marked as read.'})
+
+
+@app.route('/api/donations/retry-match/<int:food_id>', methods=['POST', 'OPTIONS'])
+@login_required
+def retry_ngo_matching(food_id):
+    """
+    Retry automatic matching for foods currently in 'available_for_donation' state.
+    """
+    if request.method == 'OPTIONS':
+        return make_response('', 204)
+
+    user = g.current_user
+    food = db.session.get(Food, food_id)
+    if not food:
+        return jsonify({'success': False, 'message': 'Food item not found.'}), 404
+
+    if food.user_id != user.id and user.role not in ('admin', 'demo'):
+        return jsonify({'success': False, 'message': 'Access denied.'}), 403
+
+    if food.donation_suitable == 'unsafe' or food.status == 'expired':
+        return jsonify({'success': False, 'message': 'Cannot match food marked as unsafe or expired.'}), 400
+
+    past_ngo_ids = {d.ngo_id for d in Donation.query.filter_by(food_id=food.id).all()}
+    best_ngo = find_best_matching_ngo(food, user, excluded_ngo_ids=past_ngo_ids)
+
+    if not best_ngo:
+        return jsonify({
+            'success': False,
+            'status': 'available_for_donation',
+            'message': 'NO SUITABLE NGO AVAILABLE RIGHT NOW. Saved as Available for Donation.'
+        }), 200
+
+    donation = dispatch_donation_to_ngo(food, user, best_ngo, notes='Retried automated match after wait period.')
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': f"Successfully matched and dispatched to {best_ngo.name}!",
+        'donation': donation.to_dict(),
+        'ngo': best_ngo.to_dict()
+    }), 201
 
 
 # ============================================================================

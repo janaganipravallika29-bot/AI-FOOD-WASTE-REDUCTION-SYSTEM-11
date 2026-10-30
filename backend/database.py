@@ -5,7 +5,7 @@ and automatic seeding of default Admin, Demo, and registered NGO accounts.
 """
 import os
 from datetime import datetime, timedelta
-from backend.models import db, User, NGO, Food, Donation, PickupDetail, PredictionLog
+from backend.models import db, User, NGO, Food, Donation, PickupDetail, PredictionLog, Notification
 
 
 def configure_database(app):
@@ -333,6 +333,34 @@ def seed_initial_data():
                 ngo_notes='Collected and successfully distributed to 45 children at Asha Shelter Home.'
             )
             db.session.add(d4)
+
+            # 5. Seed initial notifications
+            if Notification.query.count() == 0:
+                n1 = Notification(
+                    user_id=demo_user.id,
+                    donation_id=d1.id,
+                    title="Donation Auto-Dispatched",
+                    message=f"Your surplus food item was automatically matched and dispatched to {primary_ngo.name}.",
+                    type="donation_request",
+                    is_read=False
+                )
+                n2 = Notification(
+                    user_id=demo_user.id,
+                    donation_id=d3.id,
+                    title="Pickup Scheduled by NGO",
+                    message=f"{primary_ngo.name} assigned volunteer Vikram Singh for pickup in 2 hours.",
+                    type="pickup_scheduled",
+                    is_read=True
+                )
+                n3 = Notification(
+                    user_id=ngo_user.id,
+                    donation_id=d1.id,
+                    title="New Incoming Food Donation",
+                    message=f"Donor {demo_user.name} posted surplus cooked meals. AI Safety: SAFE TO DONATE.",
+                    type="donation_request",
+                    is_read=False
+                )
+                db.session.add_all([n1, n2, n3])
 
             db.session.commit()
             print("[Seed] Seeded initial sample donations with full lifecycle.")
