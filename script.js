@@ -477,12 +477,20 @@ async function handleOfflineApiFallback(resource, init) {
       success: true,
       detection: {
         is_valid: true,
+        food_identification: 'Fresh Vegetables & Produce',
+        freshness_status: 'Fresh & Firm (High Quality)',
+        quality_classification: 'Fresh',
+        food_quality_score: 92,
         visual_freshness_score: 92,
         visual_status: 'High Visual Freshness (Excellent Condition)',
+        visible_spoilage_indicators: ['Normal surface reflectance', 'Uniform color texture', 'No visible mold or discoloration'],
+        estimated_safety_status: 'SAFE TO DONATE',
+        donation_eligibility: 'Eligible for Instant NGO Donation',
+        safety_disclaimer: 'Visual analysis by AI provides an initial quality screening and cannot guarantee microbiological safety. Standard human physical/olfactory inspection and temperature compliance are mandatory before consumption or distribution.',
         emoji: '🥗',
         suggested_category: 'vegetables',
-        confidence: 0.90,
-        summary: 'AI Vision scanned image - Freshness 92%: High Visual Freshness'
+        confidence: 0.92,
+        summary: 'AI Vision scanned image - Quality 92%: Fresh (Fresh & Firm)'
       }
     });
   }
@@ -673,10 +681,17 @@ const FoodVisionEngine = {
     let result = {
       canonical: 'Fresh Produce / Meal',
       category: 'vegetables',
-      confidence: 86,
+      confidence: 88,
       defaultStorage: 'refrigerator',
       emoji: '🥗',
       freshness: 88,
+      food_quality_score: 88,
+      quality_classification: 'Fresh',
+      freshness_status: 'Fresh & Firm (High Quality)',
+      estimated_safety_status: 'SAFE TO DONATE',
+      visible_spoilage_indicators: ['Normal surface texture', 'Natural coloration detected', 'No mold or rot'],
+      donation_eligibility: 'Eligible for Instant NGO Donation',
+      safety_disclaimer: 'Visual analysis by AI provides an initial quality screening and cannot guarantee microbiological safety. Standard human physical/olfactory inspection and temperature compliance are mandatory before consumption or distribution.',
       status: 'High Freshness (Verified Quality)'
     };
 
@@ -704,10 +719,18 @@ const FoodVisionEngine = {
         if (data.success && data.detection) {
           const d = data.detection;
           result.category = d.suggested_category || 'other';
-          result.confidence = Math.round((d.confidence || 0.85) * 100);
+          result.confidence = Math.round((d.confidence || 0.88) * 100);
           result.emoji = d.emoji || '🍽️';
           result.freshness = d.visual_freshness_score || 85;
+          result.food_quality_score = d.food_quality_score || result.freshness;
           result.status = d.visual_status || 'Good Quality';
+          result.quality_classification = d.quality_classification || d.classification || (result.food_quality_score >= 75 ? 'Fresh' : (result.food_quality_score >= 50 ? 'Good' : 'Spoiled'));
+          result.freshness_status = d.freshness_status || result.status;
+          result.food_identification = d.food_identification || (d.suggested_category ? d.suggested_category.toUpperCase() : 'Food Item');
+          result.estimated_safety_status = d.estimated_safety_status || (result.quality_classification === 'Spoiled' ? 'NOT SAFE TO DONATE' : (result.quality_classification === 'Good' ? 'USE SOON' : 'SAFE TO DONATE'));
+          result.visible_spoilage_indicators = d.visible_spoilage_indicators || d.flags || ['Normal surface texture detected'];
+          result.donation_eligibility = d.donation_eligibility || (result.quality_classification === 'Spoiled' ? 'Ineligible - Unsafe for Donation' : 'Eligible for Donation');
+          result.safety_disclaimer = d.safety_disclaimer || 'Visual analysis by AI provides an initial quality screening and cannot guarantee microbiological safety. Standard human physical/olfactory inspection and temperature compliance are mandatory before consumption or distribution.';
 
           const catNames = {
             vegetables: 'Fresh Vegetables',
@@ -729,7 +752,7 @@ const FoodVisionEngine = {
             grains: 'pantry',
             other: 'pantry'
           };
-          result.canonical = catNames[result.category] || 'Fresh Food Item';
+          result.canonical = d.food_identification || catNames[result.category] || 'Fresh Food Item';
           result.defaultStorage = storages[result.category] || 'refrigerator';
         }
       }

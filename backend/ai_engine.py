@@ -208,28 +208,80 @@ def analyze_food_image(image_input, category_hint=None, filename="uploaded_food.
             else:
                 visual_status = "Visual Spoilage Alert (Unsafe for Public Donation)"
 
+            classification = 'Fresh' if (visual_score >= 75 and is_safe_visually) else ('Good' if (visual_score >= 50 and is_safe_visually) else 'Spoiled')
+
+            if classification == 'Fresh':
+                donation_eligibility = 'Eligible for Instant NGO Donation'
+                estimated_safety = 'SAFE TO DONATE'
+                freshness_status = 'Fresh & Firm (High Quality)'
+            elif classification == 'Good':
+                donation_eligibility = 'Eligible for Rapid / Same-Day NGO Pickup'
+                estimated_safety = 'USE SOON'
+                freshness_status = 'Good Condition (Consume / Donate Soon)'
+            else:
+                donation_eligibility = 'Ineligible - Unsafe for Donation'
+                estimated_safety = 'NOT SAFE TO DONATE'
+                freshness_status = 'Spoiled / Discolored (Quality Degraded)'
+                is_safe_visually = False
+
+            category_names = {
+                'vegetables': 'Fresh Green Vegetables',
+                'fruits': 'Fresh Fruits & Produce',
+                'dairy': 'Dairy / Milk Products',
+                'bakery': 'Bakery & Bread',
+                'meat': 'Cooked Protein / Meat',
+                'cooked': 'Cooked Meal / Prepared Food',
+                'grains': 'Grains & Rice',
+                'other': 'Food Item'
+            }
+            food_id_name = category_names.get(suggested_category, 'Food Item')
+
+            spoilage_indicators = flags if flags else ["Normal surface reflectance", "Uniform color texture", "No visible mold, rot, or thermal damage"]
+            safety_disclaimer = "Visual analysis by AI provides an initial quality screening and cannot guarantee microbiological safety. Standard human physical/olfactory inspection and temperature compliance are mandatory before consumption or distribution."
+
             return {
                 'is_valid': True,
                 'format': img_format,
                 'dimensions': f"{width}x{height}",
                 'brightness': round(brightness, 1),
                 'color_variance': round(color_variance, 1),
+                'food_identification': food_id_name,
+                'freshness_status': freshness_status,
+                'quality_classification': classification,
+                'classification': classification,
+                'food_quality_score': visual_score,
                 'visual_freshness_score': visual_score,
                 'visual_status': visual_status,
+                'visible_spoilage_indicators': spoilage_indicators,
+                'flags': flags,
+                'estimated_safety_status': estimated_safety,
+                'safety_status': estimated_safety,
+                'donation_eligibility': donation_eligibility,
+                'safety_disclaimer': safety_disclaimer,
                 'risk_adjustment': risk_adjustment,
                 'is_safe_visually': is_safe_visually,
-                'flags': flags,
                 'suggested_category': suggested_category,
                 'emoji': emoji,
                 'confidence': round(category_confidence, 2),
-                'summary': f"AI Vision scanned {img_format} ({width}x{height}) - Freshness {visual_score}%: {visual_status}"
+                'summary': f"AI Vision scanned {img_format} ({width}x{height}) - Quality {visual_score}%: {classification} ({freshness_status})"
             }
     except Exception as e:
         return {
             'is_valid': False,
             'reason': str(e),
+            'food_identification': category_hint.title() if category_hint else 'Food Item',
+            'freshness_status': 'Standard Visual Screening (Image format note)',
+            'quality_classification': 'Good',
+            'classification': 'Good',
+            'food_quality_score': 75,
             'visual_freshness_score': 75,
-            'visual_status': 'Standard Inspection (Image parsing note)',
+            'visual_status': 'Standard Inspection (Manual verification required)',
+            'visible_spoilage_indicators': ['Image parsing notice - proceed with manual physical check'],
+            'flags': [],
+            'estimated_safety_status': 'USE SOON',
+            'safety_status': 'USE SOON',
+            'donation_eligibility': 'Manual Inspection Required',
+            'safety_disclaimer': 'Visual analysis could not parse image. Please perform physical and olfactory inspection.',
             'risk_adjustment': 0,
             'is_safe_visually': True,
             'emoji': '🍽️',

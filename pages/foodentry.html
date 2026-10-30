@@ -235,30 +235,93 @@
       <!-- Image Upload & AI Vision Recognition -->
       <div class="form-card">
         <div class="form-section-title"><i class="fa-solid fa-camera"></i> 3. Food Image Upload (AI Quality Scanner)</div>
-        <div class="image-upload-zone" id="uploadZone">
-          <input type="file" id="foodImage" accept="image/*" onchange="previewAndScanImage(this)">
+        <div class="image-upload-zone" id="uploadZone" onclick="triggerFileInput(event)">
+          <input type="file" id="foodImage" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onchange="previewAndScanImage(this)" style="display:none;">
           <div class="upload-placeholder" id="uploadPlaceholder">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            <p style="font-weight:600;font-size:0.95rem;">Click or drag & drop a photo of the food</p>
-            <p style="font-size:0.78rem;margin-top:4px;color:var(--text-dim);">AI analyzes freshness, packaging integrity & color profile (JPG, PNG, WebP)</p>
+            <i class="fa-solid fa-cloud-arrow-up" style="color:var(--primary);font-size:2.6rem;margin-bottom:12px;"></i>
+            <p style="font-weight:600;font-size:1rem;color:var(--text-primary);margin-bottom:6px;">Click or drag & drop a photo of the food</p>
+            <p style="font-size:0.80rem;color:var(--text-muted);margin:0;">Supports JPG, JPEG, PNG, WebP (Max file size: 10MB)</p>
+            <div style="margin-top:14px;">
+              <span class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px;pointer-events:none;border-color:var(--primary-light);color:var(--accent);">
+                <i class="fa-solid fa-folder-open"></i> Choose Image File
+              </span>
+            </div>
           </div>
-          <img id="imagePreview" class="image-preview" alt="Food preview">
+
+          <div id="previewContainer" class="hidden" style="width:100%;text-align:center;">
+            <img id="imagePreview" class="image-preview" alt="Food preview" style="max-height:240px;width:auto;max-width:100%;border-radius:var(--radius-md);margin:0 auto;display:block;border:1px solid var(--border);">
+            
+            <div id="fileInfoBar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:14px;background:var(--surface2);padding:10px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <i class="fa-solid fa-image" style="color:var(--accent);font-size:1.2rem;"></i>
+                <div style="text-align:left;">
+                  <div id="imageFileName" style="font-weight:600;font-size:0.88rem;color:var(--text-primary);">food_photo.jpg</div>
+                  <div id="imageFileSize" style="font-size:0.75rem;color:var(--text-muted);">240 KB</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="triggerFileInput(event)" style="padding:6px 12px;font-size:0.8rem;">
+                  <i class="fa-solid fa-arrows-rotate"></i> Change Image
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="removeSelectedImage(event)" style="padding:6px 12px;font-size:0.8rem;color:var(--danger);border-color:rgba(239,68,68,0.4);">
+                  <i class="fa-solid fa-trash-can"></i> Remove
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- AI Image Recognition Result Banner -->
-        <div id="aiVisionCard" class="hidden" style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 18px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span id="aiVisionEmoji" style="font-size:2rem;">🌱</span>
+        <div id="aiVisionCard" class="hidden" style="margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <span id="aiVisionEmoji" style="font-size:2.2rem;">🥗</span>
               <div>
-                <div style="font-size:0.78rem;font-weight:700;color:var(--primary-light);text-transform:uppercase;letter-spacing:0.5px;">AI Vision Scanner</div>
-                <div style="font-weight:700;font-size:1rem;" id="aiVisionName">Scanning food characteristics...</div>
-                <div style="font-size:0.78rem;color:var(--text-muted);" id="aiVisionDetails">Analyzing image attributes...</div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span style="font-size:0.75rem;font-weight:700;color:var(--primary-light);text-transform:uppercase;letter-spacing:0.5px;">AI Quality Scanner</span>
+                  <span id="aiQualityBadge" class="badge" style="background:rgba(74,222,128,0.15);color:var(--accent);font-weight:700;font-size:0.75rem;padding:2px 8px;border-radius:12px;border:1px solid rgba(74,222,128,0.3);">Fresh</span>
+                </div>
+                <div style="font-weight:700;font-size:1.05rem;color:var(--text-primary);margin-top:2px;" id="aiVisionName">Scanning food characteristics...</div>
+                <div style="font-size:0.82rem;color:var(--text-muted);margin-top:2px;" id="aiVisionDetails">Analyzing image attributes...</div>
               </div>
             </div>
-            <button type="button" class="btn btn-outline btn-sm" id="applyAiBtn" onclick="applyAiDetection()" style="border-color:var(--primary);color:var(--accent);">
+            <button type="button" class="btn btn-outline btn-sm" id="applyAiBtn" onclick="applyAiDetection()" style="border-color:var(--primary);color:var(--accent);padding:8px 14px;">
               <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fill Name & Category
             </button>
+          </div>
+
+          <div style="display:grid;grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:14px;">
+            <div style="background:var(--surface2);padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);">
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Food Quality Score</div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="font-size:1.3rem;font-weight:800;color:var(--accent);" id="aiQualityScoreText">--</div>
+                <div style="flex:1;background:var(--surface);height:8px;border-radius:4px;overflow:hidden;">
+                  <div id="aiQualityScoreBar" style="width:0%;height:100%;background:var(--accent);transition:width 0.4s ease;"></div>
+                </div>
+              </div>
+            </div>
+            <div style="background:var(--surface2);padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);">
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Estimated Safety & Donation Status</div>
+              <div id="aiEstimatedSafety" style="font-weight:700;font-size:0.95rem;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+                <i class="fa-solid fa-circle-check" style="color:var(--success);"></i> Evaluating...
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface2);padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:12px;">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">
+              <i class="fa-solid fa-microscope" style="margin-right:4px;"></i> Visible Spoilage Inspection Findings
+            </div>
+            <ul id="aiSpoilageList" style="margin:0;padding-left:18px;font-size:0.83rem;color:var(--text-secondary);line-height:1.6;">
+              <li>Image uploaded for quality inspection</li>
+            </ul>
+          </div>
+
+          <div style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+            <i class="fa-solid fa-triangle-exclamation" style="color:#eab308;font-size:0.95rem;margin-top:2px;"></i>
+            <div style="font-size:0.77rem;color:var(--text-muted);line-height:1.4;">
+              <strong style="color:var(--text-secondary);">Safety Disclaimer:</strong> Visual analysis by AI provides an initial quality screening and cannot guarantee microbiological safety. Standard human physical/olfactory inspection and temperature compliance are mandatory before consumption or distribution.
+            </div>
           </div>
         </div>
 
@@ -345,6 +408,7 @@
   let selectedNgoId = null;
   let availableNgos = [];
   let uploadedImageData = "";
+  let selectedImageFile = null;
 
   // Auth Guard
   (async function initFoodEntry() {
@@ -375,37 +439,185 @@
     }
   }
 
-  // Image Upload & Vision Scanning
-  function previewAndScanImage(input) {
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      if (file.size > 10 * 1024 * 1024) {
-        showToast('Image file size exceeds 10MB limit. Please upload a smaller image.', 'error');
+  // Trigger file selection dialog
+  function triggerFileInput(event) {
+    if (event) {
+      if (event.target && (event.target.closest('button[onclick*="removeSelectedImage"]') || event.target.id === 'foodImage')) {
         return;
       }
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        uploadedImageData = e.target.result;
-        const img = document.getElementById('imagePreview');
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const input = document.getElementById('foodImage');
+    if (input) {
+      input.click();
+    }
+  }
+
+  // Remove selected image and reset vision card
+  function removeSelectedImage(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const input = document.getElementById('foodImage');
+    if (input) input.value = '';
+    selectedImageFile = null;
+    uploadedImageData = '';
+    scannedAiResult = null;
+
+    const img = document.getElementById('imagePreview');
+    if (img) img.src = '';
+    const previewContainer = document.getElementById('previewContainer');
+    if (previewContainer) previewContainer.classList.add('hidden');
+    const placeholder = document.getElementById('uploadPlaceholder');
+    if (placeholder) placeholder.style.display = 'block';
+    const zone = document.getElementById('uploadZone');
+    if (zone) zone.classList.remove('has-image');
+    const aiCard = document.getElementById('aiVisionCard');
+    if (aiCard) aiCard.classList.add('hidden');
+
+    showToast('Image removed.', 'info');
+  }
+
+  // Format bytes for human display
+  function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  // Image Upload & Vision Scanning
+  function previewAndScanImage(input) {
+    const file = (input.files && input.files[0]) ? input.files[0] : null;
+    if (!file) return;
+
+    // Validate format (JPG, JPEG, PNG, WEBP)
+    const validExtensions = /\.(jpe?g|png|webp)$/i;
+    const validMimes = /^image\/(jpeg|png|webp|jpg)$/i;
+    if (!validExtensions.test(file.name) && !validMimes.test(file.type)) {
+      showToast('Please upload an image file (JPG, JPEG, PNG, or WEBP).', 'error');
+      if (input.value) input.value = '';
+      return;
+    }
+
+    // Validate size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image file size exceeds 10MB limit. Please upload a smaller image.', 'error');
+      if (input.value) input.value = '';
+      return;
+    }
+
+    selectedImageFile = file;
+
+    // Show filename and size
+    const fileNameEl = document.getElementById('imageFileName');
+    const fileSizeEl = document.getElementById('imageFileSize');
+    if (fileNameEl) fileNameEl.textContent = file.name;
+    if (fileSizeEl) fileSizeEl.textContent = formatBytes(file.size);
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      uploadedImageData = e.target.result;
+      const img = document.getElementById('imagePreview');
+      if (img) {
         img.src = uploadedImageData;
         img.style.display = 'block';
-        document.getElementById('uploadPlaceholder').style.display = 'none';
-        document.getElementById('uploadZone').classList.add('has-image');
+      }
+      const placeholder = document.getElementById('uploadPlaceholder');
+      if (placeholder) placeholder.style.display = 'none';
+      const previewContainer = document.getElementById('previewContainer');
+      if (previewContainer) previewContainer.classList.remove('hidden');
+      const uploadZone = document.getElementById('uploadZone');
+      if (uploadZone) uploadZone.classList.add('has-image');
 
-        // Show scanning state in banner
-        document.getElementById('aiVisionCard').classList.remove('hidden');
-        document.getElementById('aiVisionName').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing image characteristics...';
-        document.getElementById('aiVisionDetails').textContent = 'Evaluating freshness, color profile, and category...';
+      // Show scanning state in banner
+      const aiCard = document.getElementById('aiVisionCard');
+      if (aiCard) aiCard.classList.remove('hidden');
+      document.getElementById('aiVisionEmoji').textContent = '🔍';
+      document.getElementById('aiVisionName').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing image characteristics...';
+      document.getElementById('aiVisionDetails').textContent = 'Evaluating freshness, color profile, and visible spoilage indicators...';
+      document.getElementById('aiQualityBadge').textContent = 'Analyzing...';
+      document.getElementById('aiQualityBadge').style.background = 'rgba(96,165,250,0.15)';
+      document.getElementById('aiQualityBadge').style.color = '#60a5fa';
+      document.getElementById('aiQualityScoreText').textContent = '--';
+      document.getElementById('aiQualityScoreBar').style.width = '0%';
+      document.getElementById('aiEstimatedSafety').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Scanning quality...';
+      document.getElementById('aiSpoilageList').innerHTML = '<li>Performing optical density and color histogram evaluation...</li>';
 
-        // Trigger AI heuristic chromatic & metadata scanner
-        FoodVisionEngine.detectFromImage(file, function(detected) {
-          scannedAiResult = detected;
-          document.getElementById('aiVisionEmoji').textContent = detected.emoji || '🍽️';
-          document.getElementById('aiVisionName').textContent = `${detected.canonical} (${detected.confidence}% Match)`;
-          document.getElementById('aiVisionDetails').textContent = `Category: ${detected.category.toUpperCase()} • Freshness: ${detected.freshness}% (${detected.status}) • Recommended storage: ${detected.defaultStorage || 'Refrigerator'}`;
-        });
-      };
-      reader.readAsDataURL(file);
+      // Trigger AI Computer Vision Scanner
+      FoodVisionEngine.detectFromImage(file, function(detected) {
+        scannedAiResult = detected;
+        updateAiVisionDisplay(detected);
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Update AI Vision UI display
+  function updateAiVisionDisplay(detected) {
+    if (!detected) return;
+
+    document.getElementById('aiVisionEmoji').textContent = detected.emoji || '🍽️';
+    document.getElementById('aiVisionName').textContent = `${detected.canonical || detected.food_identification || 'Food Item'} (${detected.confidence || 85}% Confidence)`;
+    document.getElementById('aiVisionDetails').textContent = `Category: ${(detected.category || 'other').toUpperCase()} • Status: ${detected.freshness_status || detected.status || 'Inspected'} • Recommended: ${detected.defaultStorage || 'Refrigerator'}`;
+
+    // Quality Score (0 to 100)
+    const score = Math.round(detected.food_quality_score !== undefined ? detected.food_quality_score : (detected.freshness || 80));
+    const scoreTextEl = document.getElementById('aiQualityScoreText');
+    const scoreBarEl = document.getElementById('aiQualityScoreBar');
+    if (scoreTextEl) scoreTextEl.textContent = `${score} / 100`;
+    if (scoreBarEl) {
+      scoreBarEl.style.width = `${score}%`;
+      if (score >= 75) scoreBarEl.style.background = 'var(--accent)';
+      else if (score >= 50) scoreBarEl.style.background = '#eab308';
+      else scoreBarEl.style.background = 'var(--danger)';
+    }
+
+    // Quality Classification Badge (Fresh, Good, or Spoiled)
+    const badgeEl = document.getElementById('aiQualityBadge');
+    const classification = detected.quality_classification || detected.classification || (score >= 75 ? 'Fresh' : (score >= 50 ? 'Good' : 'Spoiled'));
+    if (badgeEl) {
+      badgeEl.textContent = classification;
+      if (classification === 'Fresh') {
+        badgeEl.style.background = 'rgba(74,222,128,0.15)';
+        badgeEl.style.color = 'var(--accent)';
+        badgeEl.style.borderColor = 'rgba(74,222,128,0.3)';
+      } else if (classification === 'Good') {
+        badgeEl.style.background = 'rgba(234,179,8,0.15)';
+        badgeEl.style.color = '#eab308';
+        badgeEl.style.borderColor = 'rgba(234,179,8,0.3)';
+      } else {
+        badgeEl.style.background = 'rgba(239,68,68,0.15)';
+        badgeEl.style.color = 'var(--danger)';
+        badgeEl.style.borderColor = 'rgba(239,68,68,0.3)';
+      }
+    }
+
+    // Estimated Safety Status
+    const safetyEl = document.getElementById('aiEstimatedSafety');
+    const safetyStatus = detected.estimated_safety_status || (classification === 'Spoiled' ? 'NOT SAFE TO DONATE' : (classification === 'Good' ? 'USE SOON' : 'SAFE TO DONATE'));
+    if (safetyEl) {
+      if (safetyStatus === 'SAFE TO DONATE') {
+        safetyEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--success);"></i> SAFE TO DONATE';
+      } else if (safetyStatus === 'USE SOON') {
+        safetyEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#eab308;"></i> USE SOON (Rapid Pickup)';
+      } else {
+        safetyEl.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:var(--danger);"></i> NOT SAFE TO DONATE';
+      }
+    }
+
+    // Visible Spoilage Inspection Findings
+    const listEl = document.getElementById('aiSpoilageList');
+    if (listEl) {
+      const indicators = detected.visible_spoilage_indicators || detected.flags || [];
+      if (indicators.length > 0) {
+        listEl.innerHTML = indicators.map(ind => `<li>${escapeHtml(ind)}</li>`).join('');
+      } else {
+        listEl.innerHTML = '<li>No visible signs of discoloration, rot, or mold detected.</li>';
+      }
     }
   }
 
@@ -480,28 +692,28 @@
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing with AI...';
 
-    const payload = {
-      food_name: name,
-      category: category,
-      quantity: qty,
-      unit: unit,
-      storage_type: storage,
-      prep_time: prepTime,
-      expiry_date: expiry,
-      location: location,
-      notes: notes,
-      image_url: uploadedImageData
-    };
+    // Build FormData with multipart/form-data for actual image upload
+    const formData = new FormData();
+    formData.append('food_name', name);
+    formData.append('category', category);
+    formData.append('quantity', qty);
+    formData.append('unit', unit);
+    formData.append('storage_type', storage);
+    formData.append('prep_time', prepTime);
+    formData.append('expiry_date', expiry);
+    formData.append('location', location);
+    formData.append('notes', notes);
+
+    if (selectedImageFile) {
+      formData.append('image', selectedImageFile);
+    } else if (uploadedImageData) {
+      formData.append('image_url', uploadedImageData);
+    }
 
     try {
       const res = await fetch('/api/foods', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + getAuthToken()
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload)
+        body: formData
       });
       const data = await res.json();
 
@@ -632,17 +844,33 @@
     } else {
       // Unsafe to donate
       autoDispatchCardHtml = `
-        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(248,113,113,0.35);border-radius:var(--radius-md);padding:18px 20px;margin-top:18px;color:#fca5a5;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <span class="badge badge-danger" style="font-size:0.85rem;padding:6px 12px;">
-              <i class="fa-solid fa-ban"></i> DONATION DISABLED
-            </span>
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(248,113,113,0.35);border-radius:var(--radius-md);padding:20px;margin-top:18px;color:#fca5a5;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="badge badge-danger" style="font-size:0.85rem;padding:6px 14px;">
+                <i class="fa-solid fa-ban"></i> DONATION BLOCKED – FOOD SAFETY RISK
+              </span>
+            </div>
+            <span style="font-size:0.8rem;color:#f87171;font-weight:600;"><i class="fa-solid fa-triangle-exclamation"></i> Action Required</span>
           </div>
-          <p style="font-size:0.88rem;line-height:1.6;margin-bottom:8px;">
-            <strong>Safety Policy Enforced:</strong> ${escapeHtml(ai.donation_reason || 'Food item has expired or reached high bacterial spoilage risk. For health and food safety standards, expired food cannot be donated.')}
+          <p style="font-size:0.9rem;line-height:1.6;margin-bottom:14px;color:var(--text-primary);">
+            <strong>Why Donation is Disabled:</strong> ${escapeHtml(ai.donation_reason || 'Food item has expired or reached high bacterial spoilage risk. For health and food safety standards, expired food cannot be donated.')}
           </p>
-          <p style="font-size:0.8rem;color:var(--text-dim);margin:0;">
-            <i class="fa-solid fa-shield-halved"></i> AI predictions are decision support. We do not allow unsafe or expired food donations.
+
+          <!-- Recommended Alternative Sustainable Actions -->
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-top:12px;">
+            <div style="font-size:0.85rem;font-weight:700;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+              <i class="fa-solid fa-recycle"></i> Recommended Sustainable Alternative Actions:
+            </div>
+            <ul style="margin:0;padding-left:18px;font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+              <li><strong>Organic Composting:</strong> Convert this food waste into nutrient-rich compost for home garden or local urban farming projects.</li>
+              <li><strong>Segregated Wet Waste:</strong> Dispose through municipal biodegradable green bins to avoid methane emission in landfills.</li>
+              <li><strong>Safe Livestock/Animal Feed:</strong> If non-spoiled vegetative scraps, consider donation to verified animal shelters or poultry farms.</li>
+            </ul>
+          </div>
+
+          <p style="font-size:0.78rem;color:var(--text-dim);margin:12px 0 0 0;">
+            <i class="fa-solid fa-shield-halved"></i> FoodWise AI strictly enforces food safety protocols to safeguard community recipients and shelter homes.
           </p>
         </div>
       `;
@@ -708,7 +936,6 @@
     } catch (e) {
       showToast('Network error while retrying match.', 'error');
     }
-  }
   }
 
   // NGO Selector Modal
@@ -840,11 +1067,19 @@
 
   function resetForm() {
     document.getElementById('foodForm').reset();
-    document.getElementById('imagePreview').style.display = 'none';
-    document.getElementById('uploadPlaceholder').style.display = 'block';
-    document.getElementById('aiVisionCard').classList.add('hidden');
+    removeSelectedImage();
     document.getElementById('aiPredictionResultSection').classList.add('hidden');
-    uploadedImageData = "";
+    document.getElementById('formAlert').classList.add('hidden');
+    savedFoodRecord = null;
+    scannedAiResult = null;
+
+    // Reset default dates
+    const expiryDefault = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+    document.getElementById('expiryDate').value = expiryDefault;
+    const user = getCurrentUser();
+    if (user && user.address) {
+      document.getElementById('foodLocation').value = user.address;
+    }
   }
 
   function escapeHtml(str) {

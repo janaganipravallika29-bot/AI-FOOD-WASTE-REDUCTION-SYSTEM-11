@@ -2,7 +2,7 @@ import unittest
 import json
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -403,6 +403,102 @@ class TestAutomaticDonationWorkflow(unittest.TestCase):
         self.assertIn('auto_donation', data)
         self.assertTrue(data['auto_donation']['matched'])
         print(f"\n[PASS] Food with AI image verified & dispatched to {data['auto_donation']['ngo']['name']} (Donation #{data['auto_donation']['donation_id']}).")
+
+    def test_13_multipart_form_data_image_upload(self):
+        """Test submitting food using true multipart/form-data with file stream to /api/foods."""
+        import io
+        from PIL import Image
+
+        headers = {'Authorization': f'Bearer {self.donor_token}'}
+        img = Image.new('RGB', (120, 120), color=(46, 204, 113))
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG')
+        buf.seek(0)
+
+        tomorrow = (datetime.now(timezone.utc) + timedelta(days=3)).date().isoformat()
+        form_data = {
+            'food_name': 'Organic Spinach & Bell Peppers',
+            'category': 'vegetables',
+            'quantity': '8.0',
+            'unit': 'kg',
+            'storage_type': 'refrigerator',
+            'prep_time': 'Fresh Morning Harvest',
+            'expiry_date': tomorrow,
+            'location': 'Community Farm, Sector 4',
+            'notes': 'Freshly harvested produce in wooden crates.',
+            'image': (buf, 'fresh_spinach.jpg')
+        }
+
+        res = self.client.post('/api/foods', headers=headers, data=form_data, content_type='multipart/form-data')
+        self.assertEqual(res.status_code, 201)
+        data = res.get_json()
+        self.assertTrue(data['success'])
+        self.assertIn('food', data)
+        self.assertTrue(data['food']['image_url'].startswith('data:image/'))
+        self.assertIn('ai_prediction', data)
+        self.assertEqual(data['ai_prediction']['donation_suitable'], 'safe')
+        self.assertTrue(data['auto_donation']['matched'])
+        print(f"\n[PASS] Multipart/form-data upload verified with AI image analysis & NGO matching.")
+
+    def test_14_ai_vision_required_fields_and_spoiled_block(self):
+        """Test that all required AI vision fields are returned and spoiled classification blocks donation."""
+        import io
+        from PIL import Image
+
+        # Test predict/image returns all required fields
+        img = Image.new('RGB', (100, 100), color=(34, 139, 34))
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG')
+        buf.seek(0)
+
+        res = self.client.post('/api/predict/image', data={'image': (buf, 'greens.jpg')}, content_type='multipart/form-data')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        detection = data['detection']
+
+        required_fields = [
+            'food_identification',
+            'freshness_status',
+            'quality_classification',
+            'food_quality_score',
+            'visible_spoilage_indicators',
+            'estimated_safety_status',
+            'donation_eligibility',
+            'safety_disclaimer'
+        ]
+        for f in required_fields:
+            self.assertIn(f, detection, f"Missing required AI vision field: {f}")
+
+        self.assertIn(detection['quality_classification'], ['Fresh', 'Good', 'Spoiled'])
+        self.assertTrue(0 <= detection['food_quality_score'] <= 100)
+        self.assertIn('cannot guarantee microbiological safety', detection['safety_disclaimer'])
+        print(f"\n[PASS] AI Vision all required fields verified: classification='{detection['quality_classification']}', score={detection['food_quality_score']}.")
+
+        # Test spoiled food blocking via image / high risk
+        spoiled_img = Image.new('RGB', (100, 100), color=(30, 40, 20)) # Dark decaying tone
+        spoiled_buf = io.BytesIO()
+        spoiled_img.save(spoiled_buf, format='JPEG')
+        spoiled_buf.seek(0)
+
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=2)).date().isoformat()
+        spoiled_form = {
+            'food_name': 'Expired Dairy Cream',
+            'category': 'dairy',
+            'quantity': '2.0',
+            'unit': 'liters',
+            'storage_type': 'countertop',
+            'prep_time': 'Cooked 4 days ago',
+            'expiry_date': yesterday,
+            'location': 'Kitchen Counter',
+            'notes': 'Left out overnight',
+            'image': (spoiled_buf, 'spoiled_cream.jpg')
+        }
+        res_spoiled = self.client.post('/api/foods', headers={'Authorization': f'Bearer {self.donor_token}'}, data=spoiled_form, content_type='multipart/form-data')
+        self.assertEqual(res_spoiled.status_code, 201)
+        spoiled_data = res_spoiled.get_json()
+        self.assertEqual(spoiled_data['ai_prediction']['donation_suitable'], 'unsafe')
+        self.assertTrue(spoiled_data['auto_donation']['blocked'])
+        print(f"\n[PASS] Spoiled/expired food properly blocked: {spoiled_data['auto_donation']['message']}")
 
 if __name__ == '__main__':
     unittest.main()

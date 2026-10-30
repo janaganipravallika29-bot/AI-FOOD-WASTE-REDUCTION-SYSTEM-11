@@ -278,9 +278,19 @@ function renderTable() {
     return;
   }
 
-  tbody.innerHTML = slice.map(f => `
+  tbody.innerHTML = slice.map(f => {
+    const thumbHtml = f.image_url 
+      ? `<img src="${f.image_url}" alt="${f.food_name}" style="width:34px;height:34px;border-radius:6px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;">`
+      : `<div style="width:34px;height:34px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid var(--border);flex-shrink:0;">🍽️</div>`;
+
+    return `
     <tr>
-      <td><strong>${f.food_name}</strong></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${thumbHtml}
+          <strong>${f.food_name}</strong>
+        </div>
+      </td>
       <td>${catEmoji[f.category]||'🍽️'} <span style="text-transform:capitalize;">${f.category}</span></td>
       <td>${f.quantity} ${f.unit}</td>
       <td>${f.expiry_date}</td>
@@ -295,7 +305,8 @@ function renderTable() {
           <button class="btn btn-danger btn-sm btn-icon" title="Delete" onclick="confirmDelete(${f.id})"><i class="fa-solid fa-trash-can"></i></button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   document.getElementById('paginationInfo').textContent = `Showing ${start+1}–${Math.min(start+pageSize, filteredFoods.length)} of ${filteredFoods.length} items`;
   renderPagination();
@@ -363,7 +374,13 @@ function viewDetail(id) {
   if (!f) return;
   selectedFoodId = id;
   document.getElementById('modalFoodName').textContent = f.food_name;
+  const imgSection = f.image_url ? `
+    <div style="text-align:center;margin-bottom:16px;">
+      <img src="${f.image_url}" alt="${f.food_name}" style="max-height:180px;width:auto;max-width:100%;border-radius:var(--radius-md);border:1px solid var(--border);object-fit:cover;">
+    </div>
+  ` : '';
   document.getElementById('modalContent').innerHTML = `
+    ${imgSection}
     <div class="detail-grid">
       <div class="detail-item"><label>Category</label><span>${catEmoji[f.category]||''} ${f.category}</span></div>
       <div class="detail-item"><label>Quantity</label><span>${f.quantity} ${f.unit}</span></div>
@@ -373,6 +390,7 @@ function viewDetail(id) {
       <div class="detail-item"><label>Storage</label><span>${storageIcon[f.storage_type]||''} ${f.storage_type}</span></div>
       <div class="detail-item"><label>Status</label><span>${statusBadge[f.status]||f.status}</span></div>
       <div class="detail-item"><label>Waste Risk</label><span>${riskBadge[f.risk]||'N/A'}</span></div>
+      ${f.location?`<div class="detail-item" style="grid-column:span 2;"><label>Pickup Location</label><span>${f.location}</span></div>`:''}
       ${f.notes?`<div class="detail-item" style="grid-column:span 2;"><label>Notes</label><span>${f.notes}</span></div>`:''}
     </div>`;
   openModal('detailModal');

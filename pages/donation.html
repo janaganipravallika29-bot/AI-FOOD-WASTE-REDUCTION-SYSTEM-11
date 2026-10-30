@@ -133,9 +133,12 @@
     <div id="activeTrackerSection" class="hidden" style="margin-top:28px;">
       <div class="active-tracker-card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:16px;">
-          <div>
-            <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Active Food Dispatch</span>
-            <h3 style="font-size:1.35rem;margin-top:4px;" id="trackFoodTitle">Loading donation...</h3>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div id="trackFoodImageWrap"></div>
+            <div>
+              <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Active Food Dispatch</span>
+              <h3 style="font-size:1.35rem;margin-top:4px;" id="trackFoodTitle">Loading donation...</h3>
+            </div>
           </div>
           <div id="trackStatusBadge"></div>
         </div>
@@ -341,6 +344,15 @@
     currentTrackedDonation = d;
     document.getElementById('activeTrackerSection').classList.remove('hidden');
 
+    const imgWrap = document.getElementById('trackFoodImageWrap');
+    if (imgWrap) {
+      if (d.food_image || d.image_url) {
+        imgWrap.innerHTML = `<img src="${d.food_image || d.image_url}" alt="${escapeHtml(d.food_name)}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid var(--border);">`;
+      } else {
+        imgWrap.innerHTML = '';
+      }
+    }
+
     document.getElementById('trackFoodTitle').textContent = `${d.food_name} (${d.food_quantity} ${d.food_unit})`;
     document.getElementById('trackNgoName').textContent = d.ngo_name || 'Assigned NGO';
     document.getElementById('trackNgoContact').textContent = d.ngo_contact || 'Operations Lead';
@@ -459,10 +471,19 @@
       if (d.ai_suitable === 'use_soon') safetyBadge = '<span class="badge badge-warning">Use Soon</span>';
       else if (d.ai_suitable === 'unsafe') safetyBadge = '<span class="badge badge-danger">Unsafe</span>';
 
+      const thumbHtml = (d.food_image || d.image_url) 
+        ? `<img src="${d.food_image || d.image_url}" alt="${escapeHtml(d.food_name)}" style="width:34px;height:34px;border-radius:6px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;">`
+        : `<div style="width:34px;height:34px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid var(--border);flex-shrink:0;">🍽️</div>`;
+
       return `
         <tr>
           <td>${dateStr}</td>
-          <td><strong>${escapeHtml(d.food_name)}</strong></td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              ${thumbHtml}
+              <strong>${escapeHtml(d.food_name)}</strong>
+            </div>
+          </td>
           <td>${d.food_quantity} ${d.food_unit}</td>
           <td>${escapeHtml(d.ngo_name)}</td>
           <td>${safetyBadge}</td>
