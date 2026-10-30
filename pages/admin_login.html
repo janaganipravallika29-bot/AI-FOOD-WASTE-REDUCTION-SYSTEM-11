@@ -177,7 +177,10 @@
       }
     } catch (err) {
       document.getElementById('adminAlert').classList.remove('hidden');
-      document.getElementById('adminAlertMsg').textContent = 'Could not reach server. Please try again.';
+      const offlineMsg = (typeof getBackendOfflineMessage === 'function') 
+        ? getBackendOfflineMessage() 
+        : 'Could not reach server. Please ensure the backend is running.';
+      document.getElementById('adminAlertMsg').textContent = offlineMsg;
       btn.disabled = false;
       btn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Authenticate as Admin';
     }

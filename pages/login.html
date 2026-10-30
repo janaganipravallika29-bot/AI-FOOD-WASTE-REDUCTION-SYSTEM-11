@@ -227,7 +227,7 @@
       }
     } catch (err) {
       console.error('Demo login error:', err);
-      showAlert('Unable to connect to authentication server. Please ensure the backend is running.');
+      showAlert(typeof getBackendOfflineMessage === 'function' ? getBackendOfflineMessage() : 'Unable to connect to authentication server. Please ensure the backend is running.');
       demoBtn.disabled = false;
       demoBtn.innerHTML = '<i class="fa-solid fa-flask"></i> Demo Donor';
     }
@@ -264,7 +264,7 @@
       }
     } catch (err) {
       console.error('Demo NGO login error:', err);
-      showAlert('Unable to connect to authentication server. Please ensure the backend is running.');
+      showAlert(typeof getBackendOfflineMessage === 'function' ? getBackendOfflineMessage() : 'Unable to connect to authentication server. Please ensure the backend is running.');
       ngoBtn.disabled = false;
       ngoBtn.innerHTML = '<i class="fa-solid fa-building-ngo"></i> Demo NGO';
     }
@@ -346,12 +346,7 @@
       }
     } catch (err) {
       console.error('Login request error:', err);
-      const isLiveServer = window.location.port !== '5000' && window.location.port !== '';
-      if (isLiveServer) {
-        showAlert('Backend not detected at http://127.0.0.1:5000. Start it in terminal via: python app.py (or open http://127.0.0.1:5000/pages/login.html).');
-      } else {
-        showAlert('Could not reach the server. Please check your network connection.');
-      }
+      showAlert(typeof getBackendOfflineMessage === 'function' ? getBackendOfflineMessage() : 'Could not reach the server. Please check your network connection.');
       btn.disabled = false;
       btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
     }

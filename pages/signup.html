@@ -420,7 +420,10 @@
       }
     } catch (err) {
       console.error('Signup error:', err);
-      document.getElementById('signupAlertMsg').textContent = 'Unable to connect to server. Please try again later.';
+      const offlineMsg = (typeof getBackendOfflineMessage === 'function') 
+        ? getBackendOfflineMessage() 
+        : 'Unable to connect to server. Please verify your connection or check if backend is running.';
+      document.getElementById('signupAlertMsg').textContent = offlineMsg;
       document.getElementById('signupAlert').classList.remove('hidden');
       btn.disabled = false;
       btn.innerHTML = currentAccountType === 'ngo' ? '<i class="fa-solid fa-building-ngo"></i> Register NGO Partner' : '<i class="fa-solid fa-user-plus"></i> Create Donor Account';

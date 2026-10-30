@@ -15,9 +15,14 @@ class TestAutomaticDonationWorkflow(unittest.TestCase):
     def setUp(self):
         self.app = app
         self.app.config['TESTING'] = True
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         self.client = self.app.test_client()
 
         with self.app.app_context():
+            db.create_all()
+            from backend.database import seed_initial_data
+            seed_initial_data()
+
             # Get or create demo user (donor)
             self.donor = User.query.filter_by(email='demo@foodwise.ai').first()
             if not self.donor:
@@ -46,6 +51,11 @@ class TestAutomaticDonationWorkflow(unittest.TestCase):
             self.admin = User.query.filter_by(email='admin@foodwise.ai').first()
             self.assertIsNotNone(self.admin, "Admin user must exist")
             self.admin_token = generate_auth_token(self.admin.id, role='admin')
+
+    def tearDown(self):
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
 
     def test_01_get_verified_ngos(self):
         """Test retrieving list of actual registered and verified NGOs."""
@@ -327,6 +337,72 @@ class TestAutomaticDonationWorkflow(unittest.TestCase):
         self.assertEqual(read_res.status_code, 200)
         self.assertTrue(read_res.get_json()['success'])
         print("[PASS] Notifications read receipt verified.")
+
+    def test_10_health_check_endpoint(self):
+        """Test the system health check and connectivity diagnostic endpoint."""
+        res = self.client.get('/api/health')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data['status'], 'healthy')
+        self.assertIn('user_count', data)
+        print(f"\n[PASS] Backend health diagnostic endpoint active ({data['version']}).")
+
+    def test_11_ai_vision_image_scanner(self):
+        """Test AI computer vision image scanner with PIL heuristic analysis."""
+        import io
+        import base64
+        from PIL import Image
+
+        # Create a sample fresh produce image (vibrant green)
+        img = Image.new('RGB', (100, 100), color=(46, 204, 113))
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG')
+        b64 = 'data:image/jpeg;base64,' + base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        res = self.client.post('/api/predict/image', json={'image': b64, 'category': 'vegetables'})
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertTrue(data['success'])
+        self.assertIn('detection', data)
+        self.assertTrue(data['detection']['is_valid'])
+        self.assertGreaterEqual(data['detection']['visual_freshness_score'], 80)
+        print(f"\n[PASS] AI Vision Scanner analyzed image: {data['detection']['summary']}")
+
+    def test_12_food_entry_with_image_upload_and_auto_dispatch(self):
+        """Test submitting food with an image file/data URL, storing in DB, and triggering auto NGO match."""
+        import io
+        import base64
+        from PIL import Image
+
+        headers = {'Authorization': f'Bearer {self.donor_token}'}
+        img = Image.new('RGB', (80, 80), color=(235, 150, 50))
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG')
+        b64 = 'data:image/jpeg;base64,' + base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        tomorrow = (datetime.utcnow() + timedelta(days=2)).date().isoformat()
+        payload = {
+            'food_name': 'Fresh Baked Croissants & Brioche',
+            'category': 'bakery',
+            'quantity': 15.0,
+            'unit': 'pack',
+            'storage_type': 'pantry',
+            'prep_time': 'Baked this morning at 6:00 AM',
+            'expiry_date': tomorrow,
+            'location': 'Downtown Bakery, Central Street',
+            'notes': 'Fresh artisan pastries packaged in sanitized bakery crates.',
+            'image_url': b64
+        }
+
+        res = self.client.post('/api/foods', headers=headers, json=payload)
+        self.assertEqual(res.status_code, 201)
+        data = res.get_json()
+        self.assertTrue(data['success'])
+        self.assertIn('food', data)
+        self.assertTrue(data['food']['image_url'].startswith('data:image/'))
+        self.assertIn('auto_donation', data)
+        self.assertTrue(data['auto_donation']['matched'])
+        print(f"\n[PASS] Food with AI image verified & dispatched to {data['auto_donation']['ngo']['name']} (Donation #{data['auto_donation']['donation_id']}).")
 
 if __name__ == '__main__':
     unittest.main()

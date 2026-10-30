@@ -379,6 +379,10 @@
   function previewAndScanImage(input) {
     if (input.files && input.files[0]) {
       const file = input.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('Image file size exceeds 10MB limit. Please upload a smaller image.', 'error');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = function(e) {
         uploadedImageData = e.target.result;
@@ -388,18 +392,55 @@
         document.getElementById('uploadPlaceholder').style.display = 'none';
         document.getElementById('uploadZone').classList.add('has-image');
 
+        // Show scanning state in banner
+        document.getElementById('aiVisionCard').classList.remove('hidden');
+        document.getElementById('aiVisionName').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing image characteristics...';
+        document.getElementById('aiVisionDetails').textContent = 'Evaluating freshness, color profile, and category...';
+
         // Trigger AI heuristic chromatic & metadata scanner
         FoodVisionEngine.detectFromImage(file, function(detected) {
           scannedAiResult = detected;
-          document.getElementById('aiVisionCard').classList.remove('hidden');
           document.getElementById('aiVisionEmoji').textContent = detected.emoji || '🍽️';
           document.getElementById('aiVisionName').textContent = `${detected.canonical} (${detected.confidence}% Match)`;
-          document.getElementById('aiVisionDetails').textContent = `Category: ${detected.category.toUpperCase()} • Recommended storage: ${detected.defaultStorage || 'Refrigerator'}`;
+          document.getElementById('aiVisionDetails').textContent = `Category: ${detected.category.toUpperCase()} • Freshness: ${detected.freshness}% (${detected.status}) • Recommended storage: ${detected.defaultStorage || 'Refrigerator'}`;
         });
       };
       reader.readAsDataURL(file);
     }
   }
+
+  // Drag and Drop Handling for Image Upload
+  document.addEventListener('DOMContentLoaded', () => {
+    const uploadZone = document.getElementById('uploadZone');
+    if (uploadZone) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          uploadZone.classList.add('drag-over');
+        }, false);
+      });
+      ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          uploadZone.classList.remove('drag-over');
+        }, false);
+      });
+      uploadZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+          const file = files[0];
+          if (!file.type.match(/^image\/(jpeg|png|webp|gif|jpg)$/i) && !file.name.match(/\.(jpe?g|png|webp)$/i)) {
+            showToast('Please upload an image file (JPG, PNG, or WebP).', 'error');
+            return;
+          }
+          previewAndScanImage({ files: [file] });
+        }
+      }, false);
+    }
+  });
 
   function applyAiDetection() {
     if (!scannedAiResult) return;

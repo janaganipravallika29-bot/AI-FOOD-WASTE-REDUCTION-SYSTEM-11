@@ -23,7 +23,7 @@ from backend.auth_utils import (
     validate_password_strength, login_required, admin_required, ngo_required,
     set_auth_cookie, clear_auth_cookie
 )
-from backend.ai_engine import calculate_waste_risk
+from backend.ai_engine import calculate_waste_risk, analyze_food_image
 
 # Directory configuration for static files
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -73,6 +73,68 @@ def apply_cors_headers(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     return response
+
+
+# ============================================================================
+# SYSTEM HEALTH & AI VISION DIAGNOSTICS
+# ============================================================================
+
+@app.route('/api/health', methods=['GET', 'OPTIONS'])
+@app.route('/health', methods=['GET', 'OPTIONS'])
+def health_check():
+    """Health check endpoint to test backend connectivity, database status, and API availability."""
+    if request.method == 'OPTIONS':
+        return make_response('', 204)
+
+    db_ok = True
+    db_msg = "connected"
+    try:
+        user_count = User.query.count()
+    except Exception as e:
+        db_ok = False
+        db_msg = str(e)
+        user_count = 0
+
+    return jsonify({
+        'status': 'healthy' if db_ok else 'degraded',
+        'database': db_msg,
+        'user_count': user_count,
+        'timestamp': datetime.utcnow().isoformat(),
+        'version': '2.0.0-ai-rescue'
+    }), 200 if db_ok else 500
+
+
+@app.route('/api/predict/image', methods=['POST', 'OPTIONS'])
+def predict_image():
+    """AI Food Computer Vision Scanner endpoint: inspects uploaded image for freshness, category, and quality."""
+    if request.method == 'OPTIONS':
+        return make_response('', 204)
+
+    image_data = None
+    category_hint = None
+
+    if request.is_json:
+        body = request.get_json(silent=True) or {}
+        image_data = body.get('image') or body.get('image_url')
+        category_hint = body.get('category')
+    elif request.files:
+        image_file = request.files.get('image') or request.files.get('file')
+        if image_file:
+            image_data = image_file.read()
+            category_hint = request.form.get('category')
+    else:
+        # Form field fallback
+        image_data = request.form.get('image') or request.form.get('image_url')
+        category_hint = request.form.get('category')
+
+    if not image_data:
+        return jsonify({'success': False, 'message': 'No image file or image data provided.'}), 400
+
+    analysis = analyze_food_image(image_data, category_hint=category_hint)
+    return jsonify({
+        'success': True,
+        'detection': analysis
+    }), 200
 
 
 # ============================================================================
@@ -1111,7 +1173,13 @@ def user_foods():
         })
 
     # POST: Add new food record
-    data = request.get_json(silent=True) or {}
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        image_file = None
+    else:
+        data = request.form.to_dict()
+        image_file = request.files.get('image') or request.files.get('file')
+
     food_name = (data.get('food_name') or data.get('name') or '').strip()
     if not food_name:
         return jsonify({'success': False, 'message': 'Food name is required.'}), 400
@@ -1128,6 +1196,19 @@ def user_foods():
     notes = data.get('notes') or ''
     status = data.get('status') or 'fresh'
 
+    # Run AI computer vision analysis if image is provided
+    visual_analysis = None
+    if image_file:
+        raw_bytes = image_file.read()
+        visual_analysis = analyze_food_image(raw_bytes, category_hint=category, filename=image_file.filename)
+        # Convert to base64 Data URL so it is stored persistently across all platforms
+        if not image_url and raw_bytes:
+            import base64
+            mime = 'image/png' if (image_file.filename or '').endswith('.png') else 'image/jpeg'
+            image_url = f"data:{mime};base64,{base64.b64encode(raw_bytes).decode('utf-8')}"
+    elif image_url:
+        visual_analysis = analyze_food_image(image_url, category_hint=category)
+
     # Compute AI waste risk & donation safety
     ai_result = calculate_waste_risk(
         food_name=food_name,
@@ -1136,7 +1217,8 @@ def user_foods():
         storage_type=storage_type,
         expiry_date_str=expiry_date,
         purchase_date_str=purchase_date,
-        prep_time_str=prep_time
+        prep_time_str=prep_time,
+        visual_analysis=visual_analysis
     )
 
     try:
@@ -1288,6 +1370,11 @@ def predict_food_risk():
     storage_type = (data.get('storage_type') or 'refrigerator').strip().lower()
     expiry_date = data.get('expiry_date')
     prep_time = data.get('prep_time')
+    image_url = data.get('image_url') or data.get('image') or ''
+
+    visual_analysis = None
+    if image_url:
+        visual_analysis = analyze_food_image(image_url, category_hint=category)
 
     ai_result = calculate_waste_risk(
         food_name=food_name,
@@ -1295,7 +1382,8 @@ def predict_food_risk():
         quantity=quantity,
         storage_type=storage_type,
         expiry_date_str=expiry_date,
-        prep_time_str=prep_time
+        prep_time_str=prep_time,
+        visual_analysis=visual_analysis
     )
 
     try:

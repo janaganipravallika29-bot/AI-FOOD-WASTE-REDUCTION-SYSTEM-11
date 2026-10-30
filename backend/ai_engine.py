@@ -3,7 +3,11 @@ FoodWise AI - AI Waste Risk Prediction & Donation Safety Engine
 Computes risk scores, predicts shelf-life, evaluates donation suitability,
 and generates food rescue & NGO donation recommendations.
 """
-from datetime import datetime
+import io
+import re
+import base64
+from datetime import datetime, timezone
+from PIL import Image, ImageStat
 
 FOOD_KNOWLEDGE = {
     'dairy': {
@@ -65,11 +69,179 @@ FOOD_KNOWLEDGE = {
 }
 
 
-def calculate_waste_risk(food_name, category, quantity, storage_type, expiry_date_str=None, purchase_date_str=None, prep_time_str=None):
+def analyze_food_image(image_input, category_hint=None, filename="uploaded_food.jpg"):
+    """
+    Parses and inspects an uploaded food image using PIL / Pillow computer vision heuristics:
+    - Validates image dimensions, file integrity, and format (JPEG, PNG, WEBP, etc.)
+    - Analyzes perceived brightness (luminance), color distribution, and variance
+    - Detects signs of surface browning, mold tint, or severe darkening
+    - Classifies likely food category and freshness rating
+    - Returns a structured result with visual_freshness_score (0-100), visual_status, and risk_adjustment.
+    """
+    if not image_input:
+        return {
+            'is_valid': False,
+            'reason': 'No image provided',
+            'visual_freshness_score': 80,
+            'visual_status': 'Standard Inspection (No Image)',
+            'risk_adjustment': 0,
+            'is_safe_visually': True,
+            'emoji': '🍽️',
+            'suggested_category': category_hint or 'other'
+        }
+
+    try:
+        # Accept bytes, io.BytesIO, or base64 Data URL string
+        if isinstance(image_input, str):
+            if ',' in image_input:
+                header, encoded = image_input.split(',', 1)
+            else:
+                encoded = image_input
+            image_bytes = base64.b64decode(encoded)
+            stream = io.BytesIO(image_bytes)
+        elif hasattr(image_input, 'read'):
+            stream = io.BytesIO(image_input.read())
+        elif isinstance(image_input, (bytes, bytearray)):
+            stream = io.BytesIO(image_input)
+        else:
+            return {
+                'is_valid': False,
+                'reason': 'Unsupported image data type',
+                'visual_freshness_score': 75,
+                'visual_status': 'Standard Inspection (Format Unrecognized)',
+                'risk_adjustment': 0,
+                'is_safe_visually': True,
+                'emoji': '🍽️',
+                'suggested_category': category_hint or 'other'
+            }
+
+        with Image.open(stream) as img:
+            img_format = img.format or 'JPEG'
+            width, height = img.size
+
+            if width < 10 or height < 10:
+                raise ValueError("Image dimensions too small")
+
+            rgb_img = img.convert('RGB')
+            # Generate downsampled thumbnail for fast chromatic analysis
+            thumb = rgb_img.resize((100, 100))
+            stat = ImageStat.Stat(thumb)
+
+            mean_r, mean_g, mean_b = stat.mean[:3]
+            std_r, std_g, std_b = stat.stddev[:3]
+
+            # Standard perceived luminance (ITU-R BT.601)
+            brightness = 0.299 * mean_r + 0.587 * mean_g + 0.114 * mean_b
+            color_variance = (std_r + std_g + std_b) / 3.0
+
+            # Chromatic ratios
+            total_rgb = max(1.0, mean_r + mean_g + mean_b)
+            green_ratio = mean_g / total_rgb
+            red_ratio = mean_r / total_rgb
+            blue_ratio = mean_b / total_rgb
+
+            # Freshness and safety heuristics
+            flags = []
+            risk_adjustment = 0
+            visual_score = 88
+            is_safe_visually = True
+
+            # 1. Darkness / severe discoloration check
+            if brightness < 40:
+                flags.append("Severe darkening / low luminance detected")
+                visual_score -= 35
+                risk_adjustment += 25
+                is_safe_visually = False
+            elif brightness < 65:
+                flags.append("Surface browning / dull tone observed")
+                visual_score -= 18
+                risk_adjustment += 10
+            elif brightness > 220:
+                flags.append("High brightness / reflection")
+                visual_score -= 5
+
+            # 2. Food category detection hints
+            suggested_category = category_hint or 'other'
+            emoji = '🍽️'
+            category_confidence = 0.85
+
+            if green_ratio > 0.38 and mean_g > mean_r:
+                suggested_category = 'vegetables'
+                emoji = '🥦'
+                flags.append("Vibrant chlorophyll green detected (fresh leafy produce)")
+                visual_score += 6
+                risk_adjustment -= 5
+            elif red_ratio > 0.40 and mean_r > 130:
+                suggested_category = 'fruits'
+                emoji = '🍎'
+                flags.append("Vibrant warm tone detected (fresh fruits/produce)")
+                visual_score += 5
+                risk_adjustment -= 4
+            elif mean_r > 160 and mean_g > 150 and mean_b > 130 and abs(mean_r - mean_g) < 25:
+                suggested_category = 'dairy'
+                emoji = '🥛'
+                flags.append("Light creamy hue detected (dairy/paneer/milk)")
+            elif mean_r > 120 and mean_g > 80 and mean_b < 65:
+                suggested_category = 'bakery'
+                emoji = '🍞'
+                flags.append("Golden-crust tone detected (bread/bakery/grains)")
+            elif mean_r > 110 and mean_g < 80:
+                suggested_category = 'meat'
+                emoji = '🥩'
+                flags.append("Deep protein hue detected (cooked meat/curry)")
+
+            # Check for suspicious mold/discoloration in perishable categories
+            if category_hint in ('meat', 'cooked', 'dairy') and green_ratio > 0.38 and brightness < 110:
+                flags.append("Suspicious greenish-gray surface discoloration on perishable item")
+                visual_score -= 40
+                risk_adjustment += 30
+                is_safe_visually = False
+
+            visual_score = max(10, min(99, visual_score))
+
+            if visual_score >= 80:
+                visual_status = "High Visual Freshness (Excellent Condition)"
+            elif visual_score >= 60:
+                visual_status = "Good Quality (Suitable for Immediate Distribution)"
+            elif visual_score >= 40:
+                visual_status = "Moderate Aging / Surface Dullness Observed"
+            else:
+                visual_status = "Visual Spoilage Alert (Unsafe for Public Donation)"
+
+            return {
+                'is_valid': True,
+                'format': img_format,
+                'dimensions': f"{width}x{height}",
+                'brightness': round(brightness, 1),
+                'color_variance': round(color_variance, 1),
+                'visual_freshness_score': visual_score,
+                'visual_status': visual_status,
+                'risk_adjustment': risk_adjustment,
+                'is_safe_visually': is_safe_visually,
+                'flags': flags,
+                'suggested_category': suggested_category,
+                'emoji': emoji,
+                'confidence': round(category_confidence, 2),
+                'summary': f"AI Vision scanned {img_format} ({width}x{height}) - Freshness {visual_score}%: {visual_status}"
+            }
+    except Exception as e:
+        return {
+            'is_valid': False,
+            'reason': str(e),
+            'visual_freshness_score': 75,
+            'visual_status': 'Standard Inspection (Image parsing note)',
+            'risk_adjustment': 0,
+            'is_safe_visually': True,
+            'emoji': '🍽️',
+            'suggested_category': category_hint or 'other'
+        }
+
+
+def calculate_waste_risk(food_name, category, quantity, storage_type, expiry_date_str=None, purchase_date_str=None, prep_time_str=None, visual_analysis=None):
     """
     Calculate 0-100 waste risk score, risk level ('low', 'medium', 'high'),
     donation suitability ('safe', 'use_soon', 'unsafe'),
-    confidence score, and tailored rescue recommendations.
+    confidence score, visual condition, and tailored rescue recommendations.
     """
     cat = (category or 'other').lower()
     profile = FOOD_KNOWLEDGE.get(cat, FOOD_KNOWLEDGE.get('other'))
@@ -79,7 +251,7 @@ def calculate_waste_risk(food_name, category, quantity, storage_type, expiry_dat
     days_left = 3
     if expiry_date_str:
         try:
-            today = datetime.utcnow().date()
+            today = datetime.now(timezone.utc).date()
             clean_date = expiry_date_str.split('T')[0]
             exp = datetime.strptime(clean_date, '%Y-%m-%d').date()
             days_left = (exp - today).days
@@ -136,6 +308,11 @@ def calculate_waste_risk(food_name, category, quantity, storage_type, expiry_dat
     except Exception:
         pass
 
+    # 5. Visual AI Inspection factor
+    if visual_analysis and isinstance(visual_analysis, dict):
+        risk_adj = visual_analysis.get('risk_adjustment', 0)
+        score += risk_adj
+
     # Normalize score between 0 and 99
     score = max(5, min(99, score))
 
@@ -153,9 +330,17 @@ def calculate_waste_risk(food_name, category, quantity, storage_type, expiry_dat
     donation_suitable = 'safe'
     donation_reason = ""
 
+    # Check for visual safety veto
+    is_safe_visually = True
+    if visual_analysis and isinstance(visual_analysis, dict):
+        is_safe_visually = visual_analysis.get('is_safe_visually', True)
+
     if days_left <= 0:
         donation_suitable = 'unsafe'
         donation_reason = f"The food item has expired or reached the end of safe shelf life ({days_left} days left). For health and food safety standards, expired food cannot be donated to NGOs."
+    elif not is_safe_visually:
+        donation_suitable = 'unsafe'
+        donation_reason = "Food safety warning: AI visual inspection detected surface deterioration or discoloration consistent with spoilage. Not safe for NGO redistribution."
     elif score >= 75 and days_left <= 1 and (cat in ('meat', 'dairy', 'cooked') and storage != 'refrigerator'):
         donation_suitable = 'unsafe'
         donation_reason = f"High spoilage probability due to perishable food category ({cat}) and non-optimal storage ({storage}). Unsafe for public NGO distribution."
@@ -183,6 +368,7 @@ def calculate_waste_risk(food_name, category, quantity, storage_type, expiry_dat
         'donation_reason': donation_reason,
         'confidence': confidence,
         'storage_match': storage == ideal,
+        'visual_analysis': visual_analysis,
         'tips': profile['tips'],
         'recipes': profile['recipes'],
         'donation_policy': profile.get('donation_policy', 'Accepted in sanitary condition.')
